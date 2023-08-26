@@ -1,0 +1,25 @@
+[character]
+#success_symbol = "[\uf054](white)" # 
+#vicmd_symbol = "[\ue62b](white)" # 
+#error_symbol = "[\uf467](red)" # 
+
+[gcloud]
+disabled = true
+
+[directory]
+style = "blue bold"
+
+[package]
+disabled = true
+
+[username]
+disabled = true
+
+[hostname]
+disabled = true
+
+[aws]
+disabled = true
+
+[docker_context]
+disabled = true
