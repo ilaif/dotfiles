@@ -384,6 +384,7 @@ set -g @plugin 'CrispyConductor/tmux-copy-toolkit'
 set -g @continuum-restore 'on'
 set -g @plugin 'joshmedeski/tmux-fzf-url'
 set -g @plugin 'joshmedeski/t-smart-tmux-session-manager'
+set -g @plugin 'catppuccin/tmux'
 
 # -- custom variables ----------------------------------------------------------
 
