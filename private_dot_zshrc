@@ -29,6 +29,8 @@ ZSH_THEME="muse"
 DISABLE_MAGIC_FUNCTIONS=true
 ZSH_DISABLE_COMPFIX=true
 
+export HISTDB_FZF_DEFAULT_MODE=3
+
 plugins=(
   git
   zsh-completions
