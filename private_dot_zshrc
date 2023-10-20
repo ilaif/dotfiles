@@ -67,6 +67,9 @@ eval "$(zoxide init zsh)"
 source ~/.oh-my-zsh/custom/plugins/zsh-histdb-fzf/fzf-histdb.zsh
 bindkey '^R' histdb-fzf-widget
 
+# Load secrets
+source ~/.secret/env
+
 # Alias
 alias pastejson='pbpaste | python -m json.tool'
 alias dc='docker-compose'
@@ -115,13 +118,6 @@ export CGO_ENABLED=1
 
 # Needed for golangci-lint
 export PATH="/opt/homebrew/opt/diffutils/bin:$PATH"
-
-# Github
-export GITHUB_TOKEN=$(cat $HOME/.secret/ilaif_gh_token)
-export NODE_AUTH_TOKEN=$(cat $HOME/.secret/ilaif_gh_token)
-
-# Jira
-export JIRA_API_TOKEN=$(cat $HOME/.secret/ilai_jira_token)
 
 # NVM (Node JS)
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
