@@ -33,6 +33,7 @@ export HISTDB_FZF_DEFAULT_MODE=3
 
 plugins=(
   git
+  fzf-tab
   zsh-completions
   zsh-autosuggestions
   zsh-syntax-highlighting
