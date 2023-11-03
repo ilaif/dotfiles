@@ -20,6 +20,8 @@ if type brew &>/dev/null; then
   compinit -C
 fi
 
+export PATH="/opt/homebrew/bin:$PATH"
+
 export PATH=$HOME/.tmux/plugins/t-smart-tmux-session-manager/bin:$PATH
 
 export TERM="xterm-256color"
@@ -61,7 +63,7 @@ source $ZSH/oh-my-zsh.sh
 
 eval "$(starship init zsh)"
 
-# Zioxide
+# Zoxide - Smart CD, use `z`
 eval "$(zoxide init zsh)"
 
 # histdb fzf
@@ -163,8 +165,6 @@ eval "$(github-copilot-cli alias -- "$0")"
 
 # Load other aliases
 [ -f "$HOME/.aliases" ] && source $HOME/.aliases
-
-export PATH="/opt/homebrew/bin:$PATH"
 
 if [[ "$PROFILING_ENABLED" == "1" ]]; then
   zprof; zmodload -u zsh/zprof
