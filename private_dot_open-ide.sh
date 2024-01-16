@@ -6,10 +6,10 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-reg_repo=$(ls -d -1 $HOME/git/*/* | grep -i "$1" | head -1)
+reg_repo=$(ls -d -1 "$HOME/git"/*/* | grep -i "$1" | head -1)
 
-if [ ! -z $reg_repo ]; then
-    code $reg_repo
+if [ -n "$reg_repo" ]; then
+    code "$reg_repo"
     echo "Launching repo $reg_repo"
 else
     echo "Not found"
