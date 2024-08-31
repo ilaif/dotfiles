@@ -8,6 +8,5 @@ vecho "Installing devbox"
 curl -fsSL https://get.jetify.com/devbox | bash -s -- -f
 eval "$(devbox global shellenv)"
 
-vecho "Setting up devbox completions"
+vecho "Setting up devbox shell completion"
 devbox completion zsh >/opt/homebrew/share/zsh/site-functions/_devbox
-source <(devbox completion zsh)
