@@ -1,0 +1,7 @@
+README.md
+.gitignore
+mac-setup.sh
+bootstrap.sh
+Makefile
+
+.oh-my-zsh/cache/

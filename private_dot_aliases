@@ -1,0 +1,38 @@
+alias pastejson='pbpaste | python -m json.tool'
+alias dc='docker compose'
+alias ktx='kubectx'
+alias kns='kubens'
+alias docker-prune='docker system df && docker container prune -f && docker system prune -f && \
+    docker rmi $(docker images -q) ; docker system df'
+alias gitb='git branch --sort=-committerdate'
+alias todate='date -r '
+alias proj='sh $HOME/.open-ide.sh'
+alias gcloud-login='gcloud auth login; gcloud auth application-default login'
+alias pip-uninstall-all='pip uninstall -y -r <(pip freeze)'
+alias docker-stop-all='docker stop $(docker ps -q)'
+alias gs='git status'
+alias wo='workon'
+alias gitco='git checkout'
+alias gitca='git commit -am'
+alias glgn="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+alias mk='minikube'
+alias pr_create='gitbprune && gh prx create --no-ai-summary'
+alias git-latest-tag='git describe --tags $(git rev-list --tags --max-count=1)'
+alias port_process='port_process $1'
+alias cat='bat'
+alias vim='nvim'
+alias gcom='gco master'
+alias awsl='aws sso login'
+alias gstashpullpop='git stash && git pull && git stash pop'
+
+function port_process() {
+  PORT="$1"
+  lsof -i "tcp:${PORT}"
+}
+function gcof() {
+  git for-each-ref --format='%(refname:short)' refs/heads | fzf | xargs git checkout
+}
+function gitbprune() {
+  git fetch -p
+  git branch -vv | grep ': gone]' | grep -Ev "^\*" | awk '{ print $1; }' | xargs -r git branch -D
+}

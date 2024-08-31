@@ -1,0 +1,150 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.12.0/.schema/devbox.schema.json",
+  "packages": {
+    "awscli": {
+      "version": "latest"
+    },
+    "bat": {
+      "version": "latest"
+    },
+    "chezmoi": {
+      "version": "latest"
+    },
+    "cloudflared": {
+      "version": "latest"
+    },
+    "coreutils": {
+      "version": "latest"
+    },
+    "curl": {
+      "version": "latest"
+    },
+    "diffutils": {
+      "version": "latest"
+    },
+    "direnv": {
+      "version": "latest"
+    },
+    "dust": {
+      "version": "latest"
+    },
+    "findutils": {
+      "version": "latest"
+    },
+    "fzf": {
+      "version": "latest"
+    },
+    "gh": {
+      "version": "latest"
+    },
+    "go": {
+      "version": "1.23"
+    },
+    "goreleaser": {
+      "version": "latest"
+    },
+    "htop": {
+      "version": "latest"
+    },
+    "jq": {
+      "version": "latest"
+    },
+    "k9s": {
+      "version": "latest"
+    },
+    "kind": {
+      "version": "latest"
+    },
+    "krew": {
+      "version": "latest"
+    },
+    "kubectl": {
+      "version": "latest"
+    },
+    "kubectx": {
+      "version": "latest"
+    },
+    "kustomize": {
+      "version": "latest"
+    },
+    "lazygit": {
+      "version": "latest"
+    },
+    "lf": {
+      "version": "latest"
+    },
+    "neovim": {
+      "version": "latest"
+    },
+    "nodejs": {
+      "version": "20"
+    },
+    "oh-my-zsh": {
+      "version": "latest"
+    },
+    "pipenv": {
+      "version": "latest"
+    },
+    "pipx": {
+      "version": "latest"
+    },
+    "poetry": {
+      "version": "latest",
+      "disable_plugin": true
+    },
+    "postgresql": {
+      "version": "15.5"
+    },
+    "pre-commit": {
+      "version": "latest"
+    },
+    "python": {
+      "version": "3.12"
+    },
+    "ruff": {
+      "version": "latest"
+    },
+    "semgrep": {
+      "version": "latest"
+    },
+    "shellcheck": {
+      "version": "latest"
+    },
+    "starship": {
+      "version": "latest"
+    },
+    "terraform-docs": {
+      "version": "latest"
+    },
+    "terraform": {
+      "version": "1.9.5"
+    },
+    "tmux": {
+      "version": "latest"
+    },
+    "tree": {
+      "version": "latest"
+    },
+    "vim": {
+      "version": "latest"
+    },
+    "watch": {
+      "version": "latest"
+    },
+    "wget": {
+      "version": "latest"
+    },
+    "yq": {
+      "version": "latest"
+    },
+    "zoxide": {
+      "version": "latest"
+    }
+  },
+  "shell": {
+    "init_hook": ["echo 'Welcome to devbox!' > /dev/null"],
+    "scripts": {
+      "test": ["echo \"Error: no test specified\" && exit 1"]
+    }
+  }
+}

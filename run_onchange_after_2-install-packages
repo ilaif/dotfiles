@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -e
+
+vecho() {
+  printf "[\033[1;32minstall-packages\033[0m] %s\n" "$1"
+}
+install_brew() {
+  if test ! "$(which brew)"; then
+    vecho "Installing homebrew"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    vecho "Adding homebrew to shell PATH"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
+}
+install_or_upgrade_cask() {
+  install_brew
+  if brew ls --cask --versions "$1" >/dev/null; then
+    HOMEBREW_NO_AUTO_UPDATE=1 brew upgrade --cask "$1"
+  else
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask "$1"
+  fi
+}
+
+# Homebrew
+install_brew
+vecho "Updating brew"
+brew update
+
+vecho "Installing brew casks"
+declare -a brew_cask_packages=(
+  1password
+  1password/tap/1password-cli
+  alacritty
+  arc
+  docker
+  goland
+  google-cloud-sdk
+  google-drive
+  homebrew/cask-fonts/font-jetbrains-mono
+  homebrew/cask-fonts/font-jetbrains-mono-nerd-font
+  insomnia
+  licecap
+  linear-linear
+  notion
+  postman
+  raycast
+  raycast
+  rectangle
+  slack
+  spotify
+  stremio
+  telegram
+  todoist
+  visual-studio-code
+  zoom
+)
+for pkg in "${brew_cask_packages[@]}"; do
+  vecho "brew install cask ${pkg}"
+  install_or_upgrade_cask "${pkg}" || true
+done
+
+# GH extensions
+vecho "Installing gh extensions"
+[ -n "${GITHUB_TOKEN}" ] || gh auth login
+gh extension install ilaif/gh-prx || true
+gh extension install mislav/gh-branch
+
+# npm
+vecho "Install global npm packages"
+pnpm add -g pnpm
+pnpm install -g @githubnext/github-copilot-cli
+pnpm install -g @escape.tech/mookme
+
+# Other Apps
+vecho "Other apps to install:"
+vecho "* Okta Verify: https://apps.apple.com/us/app/okta-verify/id490179405"
+vecho "* Login to google drive"
+vecho "* Import settings from personal-drive/dev/environment/raycast.export"
+vecho "* Open RayCast and configure"
+vecho "* Open 1Password and configure"
+vecho "* Open VSCode and login to Settings & Sync"

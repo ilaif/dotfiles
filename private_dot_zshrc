@@ -8,30 +8,38 @@ timezsh() {
   for i in $(seq 1 4); do /usr/bin/time $shell -i -c exit; done
 }
 
-fpath=(~/ $fpath)
+eval "$(devbox global shellenv --init-hook)"
 
 if type brew &>/dev/null; then
-  FPATH=/usr/local/share/zsh/site-functions:$FPATH
-
+  FPATH=/opt/homebrew/share/zsh/site-functions:$FPATH
   autoload -Uz compinit
-  for dump in ~/.zcompdump(N.mh+24); do
-    compinit
-  done
+  for dump in ~/.zcompdump(N.mh+24); do; compinit; done
   compinit -C
 fi
 
+# Path
+export GOPATH="$HOME/go"
+
+export PATH="$GOPATH/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$HOME/.tmux/plugins/t-smart-tmux-session-manager/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/git/bin:/tools:/platform-tools:$HOME/bin:$PATH"
+export PATH="/opt/homebrew/opt/diffutils/bin:$PATH" # Needed for golangci-lint
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+export PATH="$HOME/.dotnet/tools:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
 
-export PATH=$HOME/.tmux/plugins/t-smart-tmux-session-manager/bin:$PATH
-
+# Environment
 export TERM="xterm-256color"
-
 export ZSH=$HOME/.oh-my-zsh
 ZSH_THEME="muse"
 DISABLE_MAGIC_FUNCTIONS=true
 ZSH_DISABLE_COMPFIX=true
-
 export HISTDB_FZF_DEFAULT_MODE=3
+export AWS_PAGER=
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 
 plugins=(
   git
@@ -48,7 +56,6 @@ plugins=(
   github
   macos
   npm
-  nvm
   node
   docker
   docker-compose
@@ -57,131 +64,31 @@ plugins=(
   poetry
 )
 
-PATH="$HOME/.local/bin:$PATH"
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/git/bin:/tools:/platform-tools:$HOME/bin:$PATH"
-source $ZSH/oh-my-zsh.sh
-
-eval "$(starship init zsh)"
-
-# Zoxide - Smart CD, use `z`
-eval "$(zoxide init zsh)"
-
-# histdb fzf
-source ~/.oh-my-zsh/custom/plugins/zsh-histdb-fzf/fzf-histdb.zsh
-bindkey '^R' histdb-fzf-widget
-
-# Load secrets
-source ~/.secret/env
-
-# Alias
-alias pastejson='pbpaste | python -m json.tool'
-alias dc='docker compose'
-alias ktx='kubectx'
-alias kns='kubens'
-alias docker-prune='docker system df && docker container prune -f && docker system prune -f && \
-    docker rmi $(docker images -q) ; docker system df';
-alias gitb='git branch --sort=-committerdate'
-alias todate='date -r '
-alias proj='sh $HOME/.open-ide.sh'
-alias gcloud-login='gcloud auth login; gcloud auth application-default login'
-alias pip-uninstall-all='pip uninstall -y -r <(pip freeze)'
-alias docker-stop-all='docker stop $(docker ps -q)'
-alias gs='git status'
-alias wo='workon'
-alias gitco='git checkout'
-alias gitca='git commit -am'
-alias glgn="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
-alias mk='minikube'
-alias pr_create='gitbprune && gh prx create --no-ai-summary'
-alias git-latest-tag='git describe --tags $(git rev-list --tags --max-count=1)'
-alias port_process='port_process $1'
-alias cat='bat'
-alias vim='nvim'
-alias gcom='gco master'
-alias awsl='aws sso login'
-alias gstashpullpop='git stash && git pull && git stash pop'
-
-export AWS_PAGER=
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-
-function port_process() {
-  PORT=$1
-  lsof -i tcp:${PORT}
-}
-function gcof() {
-  git for-each-ref --format='%(refname:short)' refs/heads | fzf | xargs git checkout
-}
-function gitbprune() {
-  git fetch -p
-  git branch -vv | grep ': gone]' | grep -Ev "^\*" | awk '{ print $1; }' | xargs -r git branch -D
-}
-
-# Golang
-export GOPATH="$HOME/go"
-export PATH="$GOPATH/bin:$PATH"
-[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
-unset -f cd
-
-# Needed for golangci-lint
-export PATH="/opt/homebrew/opt/diffutils/bin:$PATH"
-
-# NVM (Node JS)
-export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-nvm() {
-  unset -f nvm
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" --no-use # This loads nvm
-  nvm $@
-}
-
-# Kubectl
-if [ /usr/local/bin/kubectl ]; then source <(kubectl completion zsh); fi
-export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-
-# Direnv
-eval "$(direnv hook zsh)"
-
-# Gcloud
-source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
-source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-
-# Krew
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-
-# Dotnet
-export PATH="$PATH:$HOME/.dotnet/tools"
-
-# Rust
-PATH="$HOME/.cargo/bin:$PATH"
-
-# Python
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init --path)"
-eval "$(pyenv init -)"
-export PATH="$HOME/.pyenv/versions/3.12.0/bin:$PATH"
-
-# Ruby
-export PATH="$PATH:$HOME/.rvm/bin"
-export PATH="$HOME/.gem/bin:$PATH"
-
-# Github
-eval "$(github-copilot-cli alias -- "$0")"
-export GITHUB_TOKEN=$(gh auth token)
+source "$ZSH/oh-my-zsh.sh"
 
 # pnpm
-export PNPM_HOME="/Users/ilai.fallach/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
 
-# Load other aliases
+eval "$(starship init zsh)"
+eval "$(zoxide init zsh)"
+eval "$(direnv hook zsh)"
+source ~/.oh-my-zsh/custom/plugins/zsh-histdb-fzf/fzf-histdb.zsh
+bindkey '^R' histdb-fzf-widget
+source ~/.secret/env
+source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+eval "$(github-copilot-cli alias -- "$0")"
+[ -f /usr/local/bin/kubectl ] && source <(kubectl completion zsh)
 [ -f "$HOME/.aliases" ] && source $HOME/.aliases
+
+export GITHUB_TOKEN=$(gh auth token)
 
 if [[ "$PROFILING_ENABLED" == "1" ]]; then
   zprof; zmodload -u zsh/zprof
 fi
-
 ### FILE END ###

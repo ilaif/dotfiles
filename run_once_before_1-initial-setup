@@ -1,0 +1,13 @@
+#!/bin/bash
+
+vecho() {
+  printf "[\033[1;32minitial-setup\033[0m] %s\n" "$1"
+}
+
+vecho "Installing devbox"
+curl -fsSL https://get.jetify.com/devbox | bash -s -- -f
+eval "$(devbox global shellenv)"
+
+vecho "Setting up devbox completions"
+devbox completion zsh >/opt/homebrew/share/zsh/site-functions/_devbox
+source <(devbox completion zsh)
