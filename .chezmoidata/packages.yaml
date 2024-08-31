@@ -1,0 +1,28 @@
+packages:
+  darwin:
+    casks:
+      - 1password
+      - 1password/tap/1password-cli
+      - alacritty
+      - arc
+      - docker
+      - goland
+      - google-cloud-sdk
+      - google-drive
+      - homebrew/cask-fonts/font-jetbrains-mono
+      - homebrew/cask-fonts/font-jetbrains-mono-nerd-font
+      - insomnia
+      - licecap
+      - linear-linear
+      - notion
+      - postman
+      - raycast
+      - raycast
+      - rectangle
+      - slack
+      - spotify
+      - stremio
+      - telegram
+      - todoist
+      - visual-studio-code
+      - zoom

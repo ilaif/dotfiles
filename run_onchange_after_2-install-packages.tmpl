@@ -14,52 +14,17 @@ install_brew() {
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
 }
-install_or_upgrade_cask() {
-  install_brew
-  if brew ls --cask --versions "$1" >/dev/null; then
-    HOMEBREW_NO_AUTO_UPDATE=1 brew upgrade --cask "$1"
-  else
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask "$1"
-  fi
-}
 
-# Homebrew
+{{ if eq .chezmoi.os "darwin" -}}
 install_brew
 vecho "Updating brew"
 brew update
-
-vecho "Installing brew casks"
-declare -a brew_cask_packages=(
-  1password
-  1password/tap/1password-cli
-  alacritty
-  arc
-  docker
-  goland
-  google-cloud-sdk
-  google-drive
-  homebrew/cask-fonts/font-jetbrains-mono
-  homebrew/cask-fonts/font-jetbrains-mono-nerd-font
-  insomnia
-  licecap
-  linear-linear
-  notion
-  postman
-  raycast
-  raycast
-  rectangle
-  slack
-  spotify
-  stremio
-  telegram
-  todoist
-  visual-studio-code
-  zoom
-)
-for pkg in "${brew_cask_packages[@]}"; do
-  vecho "brew install cask ${pkg}"
-  install_or_upgrade_cask "${pkg}" || true
-done
+brew bundle --no-lock --file=/dev/stdin <<EOF
+{{ range .packages.darwin.casks -}}
+cask {{ . | quote }}
+{{ end -}}
+EOF
+{{ end }}
 
 # GH extensions
 vecho "Installing gh extensions"
@@ -73,7 +38,7 @@ pnpm add -g pnpm
 pnpm install -g @githubnext/github-copilot-cli
 pnpm install -g @escape.tech/mookme
 
-# Other Apps
+# Other apps
 vecho "Other apps to install:"
 vecho "* Okta Verify: https://apps.apple.com/us/app/okta-verify/id490179405"
 vecho "* Login to google drive"
