@@ -1,9 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.12.0/.schema/devbox.schema.json",
   "packages": {
-    "awscli": {
-      "version": "latest"
-    },
     "bat": {
       "version": "latest"
     },
@@ -89,7 +86,7 @@
       "version": "latest"
     },
     "poetry": {
-      "version": "latest",
+      "version":        "latest",
       "disable_plugin": true
     },
     "postgresql": {
@@ -139,7 +136,8 @@
     },
     "zoxide": {
       "version": "latest"
-    }
+    },
+    "awscli2": "latest"
   },
   "shell": {
     "init_hook": ["echo 'Welcome to devbox!' > /dev/null"],
