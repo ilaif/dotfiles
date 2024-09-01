@@ -1,15 +1,15 @@
 #!/bin/zsh
 
-vecho() {
+echox() {
   printf "[\033[1;32mrefresh-dev-packages\033[0m] %s\n" "$1"
 }
 
-vecho "Refreshing devbox global packages"
+echox "Refreshing devbox global packages"
 eval "$(devbox global shellenv --recompute --preserve-path-stack)" && hash -r
 
-vecho "Symlinking tmux config"
+echox "Symlinking tmux config"
 ln -s -f "$HOME/.tmux/.tmux.conf" "$HOME/.tmux.conf"
 
-vecho "Touching $HOME/.secret/env"
+echox "Touching $HOME/.secret/env"
 mkdir "$HOME/.secret" 2>/dev/null || true
 touch "$HOME/.secret/env"

@@ -2,22 +2,22 @@
 
 set -e
 
-vecho() {
+echox() {
   printf "[\033[1;32minstall-packages\033[0m] %s\n" "$1"
 }
 install_brew() {
   if test ! "$(which brew)"; then
-    vecho "Installing homebrew"
+    echox "Installing homebrew"
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-    vecho "Adding homebrew to shell PATH"
+    echox "Adding homebrew to shell PATH"
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
 }
 
 {{ if eq .chezmoi.os "darwin" -}}
 install_brew
-vecho "Updating brew"
+echox "Updating brew"
 brew update
 brew bundle --no-lock --file=/dev/stdin <<EOF
 {{ range .packages.darwin.casks -}}
@@ -27,22 +27,22 @@ EOF
 {{ end }}
 
 # GH extensions
-vecho "Installing gh extensions"
+echox "Installing gh extensions"
 [ -n "${GITHUB_TOKEN}" ] || gh auth login
 gh extension install ilaif/gh-prx || true
 gh extension install mislav/gh-branch
 
 # npm
-vecho "Install global npm packages"
+echox "Install global npm packages"
 pnpm add -g pnpm
 pnpm install -g @githubnext/github-copilot-cli
 pnpm install -g @escape.tech/mookme
 
 # Other apps
-vecho "Other apps to install:"
-vecho "* Okta Verify: https://apps.apple.com/us/app/okta-verify/id490179405"
-vecho "* Login to google drive"
-vecho "* Import settings from personal-drive/dev/environment/raycast.export"
-vecho "* Open RayCast and configure"
-vecho "* Open 1Password and configure"
-vecho "* Open VSCode and login to Settings & Sync"
+echox "Other apps to install:"
+echox "* Okta Verify: https://apps.apple.com/us/app/okta-verify/id490179405"
+echox "* Login to google drive"
+echox "* Import settings from personal-drive/dev/environment/raycast.export"
+echox "* Open RayCast and configure"
+echox "* Open 1Password and configure"
+echox "* Open VSCode and login to Settings & Sync"
