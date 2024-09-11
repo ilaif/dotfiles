@@ -19,7 +19,7 @@ install_brew() {
 install_brew
 echox "Updating brew"
 brew update
-brew bundle --no-lock --file=/dev/stdin <<EOF
+brew bundle --force --no-lock --file=/dev/stdin <<EOF
 {{ range .packages.darwin.casks -}}
 cask {{ . | quote }}
 {{ end -}}
@@ -34,13 +34,12 @@ gh extension install mislav/gh-branch
 
 # npm
 echox "Install global npm packages"
-pnpm add -g pnpm
-pnpm install -g @githubnext/github-copilot-cli
-pnpm install -g @escape.tech/mookme
+pnpm setup || echo "pnpm already setup"
+pnpm add -g @githubnext/github-copilot-cli
+pnpm add -g @escape.tech/mookme
 
 # Other apps
 echox "Other apps to install:"
-echox "* Okta Verify: https://apps.apple.com/us/app/okta-verify/id490179405"
 echox "* Login to google drive"
 echox "* Import settings from personal-drive/dev/environment/raycast.export"
 echox "* Open RayCast and configure"
