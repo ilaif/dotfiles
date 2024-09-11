@@ -19,12 +19,14 @@ install_brew() {
 install_brew
 echox "Updating brew"
 brew update
+set +e
 brew bundle --force --no-lock --file=/dev/stdin <<EOF
 {{ range .packages.darwin.casks -}}
 cask {{ . | quote }}
 {{ end -}}
 EOF
 {{ end }}
+set -e
 
 # GH extensions
 echox "Installing gh extensions"
