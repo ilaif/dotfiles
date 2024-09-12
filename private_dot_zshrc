@@ -8,8 +8,6 @@ timezsh() {
   for i in $(seq 1 4); do /usr/bin/time $shell -i -c exit; done
 }
 
-eval "$(devbox global shellenv --init-hook)"
-
 if type brew &>/dev/null; then
   FPATH=/opt/homebrew/share/zsh/site-functions:$FPATH
   autoload -Uz compinit
@@ -73,6 +71,8 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
+eval "$(devbox global shellenv --init-hook)"
 
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
