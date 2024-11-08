@@ -58,6 +58,9 @@ defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 echox "Enable full keyboard access for all controls"
 defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
 
+echox "Use F1, F2, etc. as standard function keys"
+defaults write NSGlobalDomain com.apple.keyboard.fnState -bool true
+
 echox "Automatically hide and show the Dock"
 defaults write com.apple.dock autohide -bool true
 
