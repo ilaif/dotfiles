@@ -405,6 +405,54 @@
         }
       }
     },
+    "difftastic@latest": {
+      "last_modified": "2024-11-16T04:25:12Z",
+      "resolved": "github:NixOS/nixpkgs/34a626458d686f1b58139620a8b2793e9e123bba#difftastic",
+      "source": "devbox-search",
+      "version": "0.61.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/s2ww4ndf9vdg9nidgrbdmk0yg6210h5j-difftastic-0.61.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/s2ww4ndf9vdg9nidgrbdmk0yg6210h5j-difftastic-0.61.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/lzijsz1sq2kkbp4n209hy94v0b65mbxr-difftastic-0.61.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/lzijsz1sq2kkbp4n209hy94v0b65mbxr-difftastic-0.61.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/yz06l23bzbg27jni4g2ak6r6di3c586f-difftastic-0.61.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/yz06l23bzbg27jni4g2ak6r6di3c586f-difftastic-0.61.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/llk4syswgbxya9w6wjkhkacmd481jxg8-difftastic-0.61.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/llk4syswgbxya9w6wjkhkacmd481jxg8-difftastic-0.61.0"
+        }
+      }
+    },
     "diffutils@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#diffutils",
@@ -1985,7 +2033,7 @@
     },
     "python@3.12": {
       "last_modified": "2024-08-14T11:41:26Z",
-      "plugin_version": "0.0.3",
+      "plugin_version": "0.0.4",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#python3",
       "source": "devbox-search",
       "version": "3.12.4",

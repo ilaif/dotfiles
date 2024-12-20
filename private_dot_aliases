@@ -24,6 +24,7 @@ alias vim='nvim'
 alias gcom='gco master'
 alias awsl='aws sso login'
 alias gstashpullpop='git stash && git pull && git stash pop'
+alias gcnv='git commit --no-verify'
 
 function port_process() {
   PORT="$1"

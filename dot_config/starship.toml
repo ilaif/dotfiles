@@ -1,3 +1,5 @@
+command_timeout = 5000
+
 [character]
 #success_symbol = "[\uf054](white)" # 
 #vicmd_symbol = "[\ue62b](white)" # 
