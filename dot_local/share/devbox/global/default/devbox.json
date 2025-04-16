@@ -86,7 +86,7 @@
       "version": "latest"
     },
     "poetry": {
-      "version":        "latest",
+      "version": "latest",
       "disable_plugin": true
     },
     "postgresql": {
@@ -134,9 +134,18 @@
     "zoxide": {
       "version": "latest"
     },
-    "awscli2":    "latest",
-    "yq-go":      "latest",
-    "difftastic": "latest"
+    "awscli2": {
+      "version": "latest"
+    },
+    "yq-go": {
+      "version": "latest"
+    },
+    "difftastic": {
+      "version": "latest"
+    },
+    "mergiraf": {
+      "version": "latest"
+    }
   },
   "shell": {
     "init_hook": ["echo 'Welcome to devbox!' > /dev/null"],

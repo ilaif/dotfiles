@@ -3,14 +3,14 @@ packages:
     casks:
       - 1password
       - 1password/tap/1password-cli
-      - alacritty
       - arc
+      - cursor
       - docker
       - goland
       - google-cloud-sdk
       - google-drive
-      - homebrew/cask-fonts/font-jetbrains-mono
-      - homebrew/cask-fonts/font-jetbrains-mono-nerd-font
+      - font-jetbrains-mono
+      - font-jetbrains-mono-nerd-font
       - insomnia
       - licecap
       - linear-linear
@@ -25,4 +25,5 @@ packages:
       - telegram
       - todoist
       - visual-studio-code
+      - wezterm
       - zoom

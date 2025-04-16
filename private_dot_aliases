@@ -1,3 +1,5 @@
+#! /bin/bash
+
 alias pastejson='pbpaste | python -m json.tool'
 alias dc='docker compose'
 alias ktx='kubectx'
@@ -18,13 +20,12 @@ alias glgn="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset
 alias mk='minikube'
 alias pr_create='gitbprune && gh prx create --no-ai-summary'
 alias git-latest-tag='git describe --tags $(git rev-list --tags --max-count=1)'
-alias port_process='port_process $1'
-alias cat='bat'
 alias vim='nvim'
 alias gcom='gco master'
 alias awsl='aws sso login'
 alias gstashpullpop='git stash && git pull && git stash pop'
 alias gcnv='git commit --no-verify'
+alias p5='cd $HOME/git/pointfive && code pointfive.code-workspace'
 
 function port_process() {
   PORT="$1"

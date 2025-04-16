@@ -51,9 +51,3 @@
   type: "git-repo"
   url: "https://github.com/tmux-plugins/tpm"
   refreshPeriod: "168h"
-
-# Alacritty
-.config/alacritty/catppuccin:
-  type: "git-repo"
-  url: "https://github.com/catppuccin/alacritty"
-  refreshPeriod: "168h"
