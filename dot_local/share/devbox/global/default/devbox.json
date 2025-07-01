@@ -114,7 +114,7 @@
       "version": "latest"
     },
     "terraform": {
-      "version": "1.9.5"
+      "version": "latest"
     },
     "tmux": {
       "version": "latest"
