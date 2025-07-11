@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 
 echox() {
   printf "[\033[1;32mrefresh-dev-packages\033[0m] %s\n" "$1"
