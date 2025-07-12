@@ -145,6 +145,9 @@
     },
     "mergiraf": {
       "version": "latest"
+    },
+    "pnpm": {
+      "version": "latest"
     }
   },
   "shell": {
