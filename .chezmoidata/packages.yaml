@@ -6,14 +6,15 @@ packages:
       - arc
       - cursor
       - docker
+      - font-jetbrains-mono
+      - font-jetbrains-mono-nerd-font
       - goland
       - google-cloud-sdk
       - google-drive
-      - font-jetbrains-mono
-      - font-jetbrains-mono-nerd-font
       - insomnia
       - licecap
       - linear-linear
+      - logi-options+
       - notion
       - notunes
       - postman
