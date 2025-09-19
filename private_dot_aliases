@@ -21,11 +21,13 @@ alias mk='minikube'
 alias pr_create='gitbprune && gh prx create --no-ai-summary'
 alias git-latest-tag='git describe --tags $(git rev-list --tags --max-count=1)'
 alias vim='nvim'
-alias gcom='gco master'
+alias gcom='gco $(git_main_branch)'
 alias awsl='aws sso login'
 alias gstashpullpop='git stash && git pull && git stash pop'
 alias gcnv='git commit --no-verify'
-alias p5='cd $HOME/git/pointfive && code pointfive.code-workspace'
+alias act='cd $HOME/git/act && cursor act.code-workspace'
+
+alias claude="claude --dangerously-skip-permissions"
 
 function port_process() {
   PORT="$1"
