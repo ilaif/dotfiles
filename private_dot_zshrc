@@ -62,7 +62,6 @@ plugins=(
   kubectl
   poetry
   mise
-  pnpm
 )
 
 source "$ZSH/oh-my-zsh.sh"
