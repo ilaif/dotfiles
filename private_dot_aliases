@@ -4,8 +4,10 @@ alias pastejson='pbpaste | python -m json.tool'
 alias dc='docker compose'
 alias ktx='kubectx'
 alias kns='kubens'
-alias docker-prune='docker system df && docker container prune -f && docker system prune -f && \
-    docker rmi $(docker images -q) ; docker system df'
+alias docker-prune='docker system df && echo "pruning containers..." && docker container prune -f && \
+  echo "pruning system..." && docker system prune -f && \
+  echo "removing all images..." && docker rmi -f $(docker images -q); \
+  docker system df'
 alias gitb='git branch --sort=-committerdate'
 alias todate='date -r '
 alias proj='sh $HOME/.open-ide.sh'
@@ -25,18 +27,39 @@ alias gcom='gco $(git_main_branch)'
 alias awsl='aws sso login'
 alias gstashpullpop='git stash && git pull && git stash pop'
 alias gcnv='git commit --no-verify'
-alias act='cd $HOME/git/act && cursor act.code-workspace'
+alias act='cd $HOME/git/act && cursor --classic act.code-workspace'
+alias grom='git rebase $(git_main_branch)'
 
-alias claude="claude --dangerously-skip-permissions"
+alias clauder="reset && claude"
 
 function port_process() {
   PORT="$1"
   lsof -i "tcp:${PORT}"
 }
+function kill_process_by_port() {
+  lsof -ti ":$1" | xargs kill -9 2>/dev/null && echo "Killed" || echo "No process on port $1"
+}
 function gcof() {
-  git for-each-ref --format='%(refname:short)' refs/heads | fzf | xargs git checkout
+  git for-each-ref --format='%(committerdate:short) %(refname:short)' --sort=-committerdate refs/heads | fzf --no-sort | awk '{print $2}' | xargs git checkout
 }
 function gitbprune() {
   git fetch -p
   git branch -vv | grep ': gone]' | grep -Ev "^\*" | awk '{ print $1; }' | xargs -r git branch -D
+}
+
+# Secret IDs belong only in $HOME/.secrets/env; never commit that file.
+function rds-dev-secret() {
+  aws secretsmanager get-secret-value \
+    --secret-id "${RDS_DEV_SECRET_ID:?Set RDS_DEV_SECRET_ID in your local-only $HOME/.secrets/env}" |
+    jq -r '.SecretString | fromjson | .password' | tr -d '\n'
+}
+function rds-prod-use1-secret() {
+  aws secretsmanager get-secret-value \
+    --secret-id "${RDS_PROD_USE1_SECRET_ID:?Set RDS_PROD_USE1_SECRET_ID in your local-only $HOME/.secrets/env}" |
+    jq -r '.SecretString | fromjson | .password' | tr -d '\n'
+}
+function rds-prod-euc1-secret() {
+  aws secretsmanager --region eu-central-1 get-secret-value \
+    --secret-id "${RDS_PROD_EUC1_SECRET_ID:?Set RDS_PROD_EUC1_SECRET_ID in your local-only $HOME/.secrets/env}" |
+    jq -r '.SecretString | fromjson | .password' | tr -d '\n'
 }

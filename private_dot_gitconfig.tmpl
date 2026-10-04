@@ -3,10 +3,30 @@
 	email = {{ .gitEmail }}
 [push]
 	autoSetupRemote = true
-[merge "mergiraf"]
-  name = mergiraf
-  driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
+#[merge "mergiraf"]
+#  name = mergiraf
+#  driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
 [core]
   attributesfile = ~/.gitattributes
-[diff]
-  external = difft
+  pager = delta
+#[diff]
+#  external = difft
+[init]
+  defaultBranch = main
+
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true  # use n and N to move between diff sections
+    dark = true      # or light = true, or omit for auto-detection
+
+[merge]
+    conflictStyle = zdiff3

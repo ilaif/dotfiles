@@ -15,19 +15,11 @@ install_brew() {
   fi
 }
 
-eval "$(devbox global shellenv)"
-
-{{ if eq .chezmoi.os "darwin" -}}
 install_brew
 echox "Updating brew"
 brew update
 set +e
-brew bundle --force --file=/dev/stdin <<EOF
-{{ range .packages.darwin.casks -}}
-cask {{ . | quote }}
-{{ end -}}
-EOF
-{{ end }}
+brew bundle --force --file="$HOME/Brewfile"
 set -e
 
 # GH extensions

@@ -17,5 +17,16 @@ config.window_background_opacity = 0.95
 config.initial_rows = 40
 config.initial_cols = 120
 
+-- keybindings
+config.keys = {
+	-- Turn off the default CMD-m Hide action, allowing CMD-m to
+	-- be potentially recognized and handled by the tab
+	{
+		key = "Enter",
+		mods = "OPT",
+		action = wezterm.action.DisableDefaultAssignment,
+	},
+}
+
 -- and finally, return the configuration to wezterm
 return config

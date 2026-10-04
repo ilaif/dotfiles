@@ -18,11 +18,11 @@ fi
 # Path
 export GOPATH="$HOME/go"
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/git/bin:/tools:/platform-tools:$HOME/bin:$PATH"
 export PATH="$GOPATH/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
 export PATH="$HOME/.tmux/plugins/t-smart-tmux-session-manager/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/git/bin:/tools:/platform-tools:$HOME/bin:$PATH"
 export PATH="/opt/homebrew/opt/diffutils/bin:$PATH" # Needed for golangci-lint
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 export PATH="$HOME/.dotnet/tools:$PATH"
@@ -56,7 +56,7 @@ plugins=(
   macos
   npm
   node
-  docker
+  # docker
   docker-compose
   aws
   kubectl
@@ -74,7 +74,6 @@ case ":$PATH:" in
 esac
 # pnpm end
 
-eval "$(devbox global shellenv --init-hook)"
 
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
@@ -95,3 +94,130 @@ if [[ "$PROFILING_ENABLED" == "1" ]]; then
   zprof; zmodload -u zsh/zprof
 fi
 ### FILE END ###
+
+[ -f "$(which tilt)" ] && source <(tilt completion zsh)
+
+
+
+
+alias claude-mem='bun "$HOME/.claude/plugins/cache/thedotmack/claude-mem/10.6.1/scripts/worker-service.cjs"'
+
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+
+export EDITOR='nvim'
+
+# Added by codebase-memory-mcp install
+export PATH="$HOME/.local/bin:$PATH"
+
+eval "$(/opt/homebrew/bin/brew shellenv)"
+eval "$(mise activate zsh)"
+# BEGIN_AWS_SSO_CLI
+
+# AWS SSO requires `bashcompinit` which needs to be enabled once and
+# only once in your shell.  Hence we do not include the two lines:
+#
+# autoload -Uz +X compinit && compinit
+# autoload -Uz +X bashcompinit && bashcompinit
+#
+# If you do not already have these lines, you must COPY the lines
+# above, place it OUTSIDE of the BEGIN/END_AWS_SSO_CLI markers
+# and of course uncomment it
+
+__aws_sso_profile_complete() {
+     local _args=${AWS_SSO_HELPER_ARGS:- -L error}
+    _multi_parts : "($(/opt/homebrew/bin/aws-sso ${=_args} list --csv Profile))"
+}
+
+aws-sso-profile() {
+    local _args=${AWS_SSO_HELPER_ARGS:- -L error}
+    local _sso=""
+    local _profile=""
+
+    if [ -n "$AWS_PROFILE" ]; then
+        echo "Unable to assume a role while AWS_PROFILE is set"
+        return 1
+    fi
+
+    # Parse arguments
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -S|--sso)
+                shift
+                if [ -z "$1" ]; then
+                    echo "Error: -S/--sso requires an argument"
+                    return 1
+                fi
+                _sso="$1"
+                shift
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                echo "Usage: aws-sso-profile [-S|--sso <sso-instance>] <profile>"
+                return 1
+                ;;
+            *)
+                if [ -z "$_profile" ]; then
+                    _profile="$1"
+                else
+                    echo "Error: Multiple profiles specified"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$_profile" ]; then
+        echo "Usage: aws-sso-profile [-S|--sso <sso-instance>] <profile>"
+        return 1
+    fi
+
+    # Build and execute the eval command with optional SSO flag
+    if [ -n "$_sso" ]; then
+        eval $(/opt/homebrew/bin/aws-sso ${=_args} -S "$_sso" eval -p "$_profile")
+    else
+        eval $(/opt/homebrew/bin/aws-sso ${=_args} eval -p "$_profile")
+    fi
+
+    if [ "$AWS_SSO_PROFILE" != "$_profile" ]; then
+        return 1
+    fi
+}
+
+aws-sso-clear() {
+    local _args=${AWS_SSO_HELPER_ARGS:- -L error}
+    if [ -z "$AWS_SSO_PROFILE" ]; then
+        echo "AWS_SSO_PROFILE is not set"
+        return 1
+    fi
+    eval $(/opt/homebrew/bin/aws-sso ${=_args} eval -c)
+}
+
+compdef __aws_sso_profile_complete aws-sso-profile
+complete -C /opt/homebrew/bin/aws-sso aws-sso
+
+# END_AWS_SSO_CLI
+
+# ============ BEGIN coder COMPLETION ============
+_coder_completions() {
+	local -a args completions
+	args=("${words[@]:1:$#words}")
+	completions=(${(f)"$(COMPLETION_MODE=1 "coder" "${args[@]}")"})
+	compadd -a completions
+}
+compdef _coder_completions coder
+# ============ END coder COMPLETION ==============
+
+
+
+# bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# opencode
+export PATH=$HOME/.opencode/bin:$PATH
+
+# >>> act-dx completion >>>
+if [ -f "$HOME/.config/act-dx/completions/dx.zsh" ]; then
+  source "$HOME/.config/act-dx/completions/dx.zsh"
+fi
+# <<< act-dx completion <<<
