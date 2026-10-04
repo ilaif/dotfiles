@@ -1,0 +1,7 @@
+#!/bin/bash
+# Deep-merge the tracked keys from claude-settings.json over the live file.
+# Keys Claude Code or other tools write (hooks, autoMode, ...) are kept as-is.
+jq -s 'reduce .[] as $x ({}; . * $x)' - <(cat <<'EOF'
+{{ include "claude-settings.json" }}
+EOF
+)

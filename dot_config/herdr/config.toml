@@ -1,0 +1,67 @@
+onboarding = false
+[keys]
+next_agent = "ctrl+cmd+a"
+
+[ui.toast]
+delivery = "system"
+
+[ui]
+show_agent_labels_on_pane_borders = true
+
+agent_panel_sort = "spaces"
+
+status_indicators = "dots"
+[ui.sidebar.agents.rows_by_agent]
+claude = [["state_icon", "workspace", "tab"], ["agent"], [{ token = "$recap", dim = true }]]
+
+# [ui.sidebar.agents]
+# rows = [["state_icon", "workspace", "tab"], ["state_text", "agent"]]
+
+[worktrees]
+directory = "~/git"
+
+[[keys.command]]
+key = "prefix+alt+n"
+type = "plugin_action"
+command = "ilai.dev-space.open"
+description = "New claude + nvim/hunk space"
+
+[[keys.command]]
+key = "prefix+alt+w"
+type = "plugin_action"
+command = "ilai.new-worktree.open"
+description = "New worktree (dev space)"
+
+[[keys.command]]
+key = "prefix+alt+q"
+type = "plugin_action"
+command = "ilai.dev-space.close"
+description = "Close space (remove worktree)"
+
+[[keys.command]]
+key = "prefix+alt+c"
+type = "shell"
+command = "cursor --classic \"$(herdr pane list | jq -r '.result.panes[] | select(.focused==true) | .foreground_cwd')\""
+description = "Open focused pane's directory in Cursor"
+
+[[keys.command]]              # open in a split beside your work
+key = "prefix+f"
+type = "shell"
+command = "herdr plugin action invoke open-file-viewer --plugin herdr-file-viewer"
+
+[[keys.command]]              # …or in its own tab
+key = "prefix+shift+f"
+type = "shell"
+command = "herdr plugin action invoke open-file-viewer-tab --plugin herdr-file-viewer"
+
+[[keys.command]]
+key = "prefix+alt+r"
+type = "plugin_action"
+command = "ilai.claude-recap.show"
+description = "Show Claude recaps (focused agent first)"
+
+[[keys.command]]
+key = "prefix+alt+h"
+type = "plugin_action"
+command = "ilai.space-visibility.toggle"
+description = "Show / park / hide spaces"

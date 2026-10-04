@@ -1,0 +1,54 @@
+{
+  "env": {
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "ccstatusline",
+    "padding": 0,
+    "refreshInterval": 10
+  },
+  "enabledPlugins": {
+    "baz@baz": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "crit@crit": true,
+    "eli5@claude-community": true,
+    "frontend-design@claude-code-plugins": false,
+    "i-have-adhd@i-have-adhd": true,
+    "pr-review-toolkit@claude-plugins-official": false
+  },
+  "extraKnownMarketplaces": {
+    "baz": { "source": { "source": "github", "repo": "baz-scm/baz-plugin" } },
+    "claude-community": { "source": { "source": "github", "repo": "anthropics/claude-plugins-community" } },
+    "context-mode": { "source": { "source": "github", "repo": "mksglu/context-mode" } },
+    "crit": { "source": { "source": "github", "repo": "tomasz-tomczyk/crit" } },
+    "frontend-slides": { "source": { "source": "github", "repo": "zarazhangrui/frontend-slides" } },
+    "i-have-adhd": { "source": { "source": "github", "repo": "ayghri/i-have-adhd" } },
+    "obsidian-skills": { "source": { "source": "github", "repo": "kepano/obsidian-skills" } }
+  },
+  "alwaysThinkingEnabled": false,
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "medium"
+    }
+  },
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "autoCompactEnabled": true,
+  "agentPushNotifEnabled": false,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true,
+  "defaultMode": "bypassPermissions"
+}

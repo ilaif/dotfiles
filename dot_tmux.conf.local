@@ -421,3 +421,17 @@ set -g status-style 'bg=default'       # transparent
 
 bind-key x kill-pane # skip "kill-pane 1? (y/n)" prompt
 set -g detach-on-destroy off  # don't exit from tmux when closing a session
+
+# True color passthrough and no escape delay
+set -ag terminal-overrides ",xterm*:Tc:smcup@:rmcup@"
+set -ag terminal-overrides ",*256col*:Tc"
+set -sg escape-time 0
+
+# Scroll up enters copy-mode; mouse drag copies to the macOS clipboard
+bind-key -n WheelUpPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= '#{pane_in_mode}' 'send-keys -M' 'copy-mode -e'"
+bind-key -T copy-mode-vi WheelUpPane send-keys -X scroll-up
+bind-key -T copy-mode-vi WheelDownPane send-keys -X scroll-down
+bind-key -T copy-mode WheelUpPane send-keys -X scroll-up
+bind-key -T copy-mode WheelDownPane send-keys -X scroll-down
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
+bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"

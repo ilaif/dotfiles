@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+echox() {
+  printf "[\033[1;32msync-skills\033[0m] %s\n" "$1"
+}
+
+# Third-party agent skills, installed via the `skills` CLI into ~/.agents/skills.
+# Own skills are tracked directly in dot_agents/skills.
+SKILLS=(
+  "herdrdev/herdr herdr"
+  "mattpocock/skills handoff"
+  "IamShobe/dotfiles explainer-artifact"
+  "terrylica/cc-skills chezmoi-workflows"
+  "zarazhangrui/frontend-slides frontend-slides"
+  "Doist/todoist-cli todoist-cli"
+  "cathrynlavery/diagram-design diagram-design"
+  "safishamsi/graphify graphify"
+)
+
+LOCK="$HOME/.agents/.skill-lock.json"
+
+cd "$HOME"
+for entry in "${SKILLS[@]}"; do
+  read -r source skill <<<"$entry"
+  if jq -e --arg s "$skill" '.skills[$s]' "$LOCK" >/dev/null 2>&1; then
+    continue
+  fi
+  echox "Installing $skill from $source"
+  npx -y skills add "$source" -g -s "$skill" -a claude-code -y >/dev/null
+done
+
+echox "Updating skills"
+npx -y skills update -g -y >/dev/null

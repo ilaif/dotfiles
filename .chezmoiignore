@@ -5,3 +5,4 @@ bootstrap.sh
 Makefile
 
 .oh-my-zsh/cache/
+claude-settings.json

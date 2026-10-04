@@ -17,7 +17,11 @@ To preview this checkout explicitly without changing the configured source:
 chezmoi --source "$PWD" diff
 ```
 
-Review differences before applying them. Use chezmoi, rather than a second installer, to manage these skills.
+Review differences before applying them. Own skills live in `dot_agents/skills/`. Third-party skills are listed in `run_after-3-sync-skills`, which installs missing ones and updates all of them via `npx skills` (lock file: `~/.agents/.skill-lock.json`) on every apply. Add a third-party skill by appending `"<owner/repo> <skill>"` to that list, not by copying it into the source directory.
+
+## Claude Code settings
+
+`~/.claude/settings.json` is partly owned by Claude Code and other tools (hooks, `autoMode`, plugin toggles). `dot_claude/modify_settings.json.tmpl` deep-merges the tracked keys in `claude-settings.json` over the live file, so tracked keys win and untracked keys are kept. Edit `claude-settings.json` to change a synced setting; keep work-specific keys (`autoMode` environment notes) out of this public repo.
 
 `/cleanup-worktrees [root-directory] [--dry-run]` audits Git worktrees (default `~/git`), checks Herdr activity inside Herdr, and asks before removing folders or pruning registrations. Branches and unfinished work are preserved.
 
