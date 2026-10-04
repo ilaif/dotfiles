@@ -54,7 +54,7 @@ Edit `Brewfile` to review package changes. The install hook runs `brew bundle --
 
 Git name and email remain chezmoi's `gitUser` and `gitEmail` data, not fixed personal details. The Git credential helper resolves `gh` from `PATH` and retrieves credentials at runtime.
 
-The database secret helpers require `RDS_DEV_SECRET_ID`, `RDS_PROD_USE1_SECRET_ID`, and `RDS_PROD_EUC1_SECRET_ID` in local-only `$HOME/.secrets/env` (already sourced by `.zshrc`). Set each variable to the relevant secret ID locally. The helpers retrieve the password at runtime using the active AWS credentials. Do not commit that file or any secret values or identifiers. No local settings file is created by this consolidation.
+Machine-specific aliases and functions (for example the database secret helpers) live in `$HOME/.custom_aliases`. It is optional, sourced from `.aliases` when present, and deliberately untracked: never `chezmoi add` it or commit it.
 
 ## Review before applying
 

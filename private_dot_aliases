@@ -47,19 +47,5 @@ function gitbprune() {
   git branch -vv | grep ': gone]' | grep -Ev "^\*" | awk '{ print $1; }' | xargs -r git branch -D
 }
 
-# Secret IDs belong only in $HOME/.secrets/env; never commit that file.
-function rds-dev-secret() {
-  aws secretsmanager get-secret-value \
-    --secret-id "${RDS_DEV_SECRET_ID:?Set RDS_DEV_SECRET_ID in your local-only $HOME/.secrets/env}" |
-    jq -r '.SecretString | fromjson | .password' | tr -d '\n'
-}
-function rds-prod-use1-secret() {
-  aws secretsmanager get-secret-value \
-    --secret-id "${RDS_PROD_USE1_SECRET_ID:?Set RDS_PROD_USE1_SECRET_ID in your local-only $HOME/.secrets/env}" |
-    jq -r '.SecretString | fromjson | .password' | tr -d '\n'
-}
-function rds-prod-euc1-secret() {
-  aws secretsmanager --region eu-central-1 get-secret-value \
-    --secret-id "${RDS_PROD_EUC1_SECRET_ID:?Set RDS_PROD_EUC1_SECRET_ID in your local-only $HOME/.secrets/env}" |
-    jq -r '.SecretString | fromjson | .password' | tr -d '\n'
-}
+# Local-only aliases/functions (untracked): ~/.custom_aliases
+[ -f "$HOME/.custom_aliases" ] && source "$HOME/.custom_aliases"
