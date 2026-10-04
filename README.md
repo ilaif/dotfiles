@@ -62,4 +62,4 @@ This consolidation changes source files only. A future broad apply or bootstrap 
 
 The refresh hook creates `$HOME/.secrets/env`, the file the shell sources. The current home `docker-prune` alias is preserved, including forced removal of all Docker images. Review it before using it.
 
-The Homebrew baseline is intentionally not expanded to cover every current shell/editor dependency (for example, Delta, mise, aws-sso, bun, and Claude Code). The shell also retains a version-specific `claude-mem` plugin path under `$HOME`; review installed-tool availability and that path on other machines.
+The Homebrew baseline is intentionally not expanded to cover every current shell/editor dependency (for example, Delta, mise, aws-sso, bun, and Claude Code). Review installed-tool availability on other machines.

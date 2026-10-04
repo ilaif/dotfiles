@@ -97,11 +97,6 @@ fi
 
 [ -f "$(which tilt)" ] && source <(tilt completion zsh)
 
-
-
-
-alias claude-mem='bun "$HOME/.claude/plugins/cache/thedotmack/claude-mem/10.6.1/scripts/worker-service.cjs"'
-
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 export EDITOR='nvim'
