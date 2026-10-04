@@ -39,7 +39,7 @@ skip silently when there is none.
 - `scripts/setup-worktree.sh` present: run it synchronously. A repo with slow steps
   (dependency install, build) should detach them inside this script, so the agent starts
   against a usable tree.
-- `package.json` has a `setup-worktree` script: run it in the background, logging to
+- `package.json` has a `setup-worktree` script: run it with pnpm in the background, logging to
   `.worktree-setup.log`.
 
 ```bash
@@ -48,7 +48,7 @@ cd <worktree-path>
 if [ -x scripts/setup-worktree.sh ]; then
   ./scripts/setup-worktree.sh
 elif node -e 'process.exit(require("./package.json").scripts?.["setup-worktree"] ? 0 : 1)' 2>/dev/null; then
-  nohup npm run setup-worktree > .worktree-setup.log 2>&1 &
+  nohup pnpm run setup-worktree > .worktree-setup.log 2>&1 &
 fi
 ```
 
