@@ -17,9 +17,9 @@ An agent name followed by `:` at the very start is an override (`claude`, `codex
 
 ## 2. Create the worktree workspace
 
-Slugify the task into a branch name, leading with the ticket ID if the task names one (`rd-1234-<rest>`).
+Slugify the task into a branch name, leading with the ticket ID if the task names one (`abc-123-<rest>`).
 
-Worktrees are siblings of the repo, never nested inside it: for a repo at `/Users/ilai/git/act`, the path is `/Users/ilai/git/<slug>`, bare — no user or repo prefix.
+Worktrees are siblings of the repo, never nested inside it: for a repo at `~/git/myrepo`, the path is `~/git/<slug>`, bare — no user or repo prefix.
 
 ```bash
 herdr worktree create --cwd <repo-root> --branch <slug> --base <default-branch> --path <parent>/<slug> --label <slug> --no-focus
@@ -36,19 +36,19 @@ On a path or branch collision, retry with `-2`, `-3`, … appended to both.
 A fresh worktree is missing git-ignored local files (env, keys). Run whichever setup the repo ships, in the new worktree;
 skip silently when there is none.
 
-- `scripts/setup-worktree.sh` present: run it.
-- `package.json` has a `setup-worktree` script (the act monorepo): run the fast steps
-  synchronously and detach the slow ones, the same split `.claude/hooks/worktree-create.ts`
-  uses, so the agent starts against a usable tree while `pnpm install` finishes in the
-  background.
+- `scripts/setup-worktree.sh` present: run it synchronously. A repo with slow steps
+  (dependency install, build) should detach them inside this script, so the agent starts
+  against a usable tree.
+- `package.json` has a `setup-worktree` script: run it in the background, logging to
+  `.worktree-setup.log`.
 
 ```bash
 cd <worktree-path>
+[ -f mise.toml ] && mise trust
 if [ -x scripts/setup-worktree.sh ]; then
   ./scripts/setup-worktree.sh
 elif node -e 'process.exit(require("./package.json").scripts?.["setup-worktree"] ? 0 : 1)' 2>/dev/null; then
-  mise trust && mise x -- pnpm run setup-worktree --only files,mise
-  nohup mise x -- pnpm run setup-worktree --only install,build > .worktree-setup.log 2>&1 &
+  nohup npm run setup-worktree > .worktree-setup.log 2>&1 &
 fi
 ```
 

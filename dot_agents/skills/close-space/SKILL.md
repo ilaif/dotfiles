@@ -17,7 +17,7 @@ herdr workspace list
 
 Match the argument against `label`, `workspace_id`, or `worktree.checkout_path` / its basename (the branch slug, per new-space). Take the worktree path from `worktree.checkout_path` and the branch from `git -C <path> branch --show-current`. No match or several matches: list the candidates and ask.
 
-`worktree.is_linked_worktree` false (a main checkout such as `~/git/act`) or no `worktree` at all: there is nothing to remove — only close the workspace (step 5), after confirming.
+`worktree.is_linked_worktree` false (a main checkout such as `~/git/myrepo`) or no `worktree` at all: there is nothing to remove — only close the workspace (step 5), after confirming.
 
 ## 2. Check what would be lost
 
