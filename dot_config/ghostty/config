@@ -1,0 +1,13 @@
+theme = Catppuccin Mocha
+font-family = JetBrainsMono Nerd Font
+font-style = Bold
+font-size = 14
+background-opacity = 0.95
+window-height = 40
+window-width = 120
+keybind = opt+enter=unbind
+macos-option-as-alt = left
+
+# Split pane styling aligned with catppuccin-mocha
+split-divider-color = #45475a
+unfocused-split-fill = #1e1e2e

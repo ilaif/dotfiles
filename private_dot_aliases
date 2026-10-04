@@ -27,7 +27,6 @@ alias gcom='gco $(git_main_branch)'
 alias awsl='aws sso login'
 alias gstashpullpop='git stash && git pull && git stash pop'
 alias gcnv='git commit --no-verify'
-alias act='cd $HOME/git/act && cursor --classic act.code-workspace'
 alias grom='git rebase $(git_main_branch)'
 
 alias clauder="reset && claude"
