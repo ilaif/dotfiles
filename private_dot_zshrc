@@ -52,7 +52,7 @@ plugins=(
   python
   virtualenv
   colorize
-  github
+  gh
   macos
   npm
   node

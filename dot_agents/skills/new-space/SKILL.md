@@ -1,6 +1,6 @@
 ---
 name: new-space
-description: Create a git worktree, open it as a Herdr workspace, and fire-and-forget a coding agent on a task in it. Use when the user asks to start work in a new space, worktree, or parallel session.
+description: Create a git worktree, open it as a Herdr workspace, and fire-and-forget a coding agent on a task in it — locally or on a remote Herdr machine (`@<machine>`, "in workspace X"). Use when the user asks to start work in a new space, worktree, or parallel session.
 ---
 
 # new-space
@@ -11,9 +11,26 @@ Requires `HERDR_ENV=1` — if unset, say you are not inside Herdr and stop.
 
 ## 1. Parse
 
-An agent name followed by `:` at the very start is an override (`claude`, `codex`, `pi`, `opencode`, `omp`); anything else is all task. Default agent: `claude`.
+A leading `@<where>`, or naming a remote workspace in words ("in workspace abc-123", "on abc-123"), picks that remote machine; otherwise the space is local. Then an agent name followed by `:` is an override (`claude`, `codex`, `pi`, `opencode`, `omp`); anything else is all task. Default agent: `claude`.
 
-`codex: fix the flaky auth test` → agent `codex`, task `fix the flaky auth test`.
+`codex: fix the flaky auth test` → local, agent `codex`, task `fix the flaky auth test`.
+`@abc-123 claude: fix the flaky auth test` or `open a new space in workspace abc-123 to fix the flaky auth test` → remote machine `abc-123`.
+
+### Remote target
+
+Remote machines are saved Herdr machines, each with a label (often `<scope>/<name>`) and an SSH target:
+
+```bash
+herdr machine list --json
+```
+
+Match `<where>` against the label, the label after `/`, or the target's last dot-separated part. Several matches: list them and ask. No match: check `~/.claude/CLAUDE.local.md` for how to save that machine, save it, and list again; with no instructions there, say so and stop.
+
+For a remote space, every `herdr` command below takes the `--machine <label>` prefix, and every shell command runs as `ssh <target> '<command>'`. The repo is the main checkout of the machine's existing workspaces (`herdr --machine <label> workspace list`, `worktree.checkout_path` where `is_linked_worktree` is false), and worktrees are its siblings. Fetch first so the base is current, then base on the remote default branch:
+
+```bash
+ssh <target> 'git -C <repo> fetch origin && git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD'
+```
 
 ## 2. Create the worktree workspace
 
@@ -39,8 +56,8 @@ skip silently when there is none.
 - `scripts/setup-worktree.sh` present: run it synchronously. A repo with slow steps
   (dependency install, build) should detach them inside this script, so the agent starts
   against a usable tree.
-- `package.json` has a `setup-worktree` script: run it with pnpm in the background, logging to
-  `.worktree-setup.log`.
+- `package.json` has a `setup-worktree` script: run it with pnpm, skipping the heavy
+  `install` and `build` steps. The agent installs dependencies itself when a task needs them.
 
 ```bash
 cd <worktree-path>
@@ -48,7 +65,7 @@ cd <worktree-path>
 if [ -x scripts/setup-worktree.sh ]; then
   ./scripts/setup-worktree.sh
 elif node -e 'process.exit(require("./package.json").scripts?.["setup-worktree"] ? 0 : 1)' 2>/dev/null; then
-  nohup pnpm run setup-worktree > .worktree-setup.log 2>&1 &
+  pnpm run setup-worktree --skip install,build
 fi
 ```
 
@@ -74,4 +91,4 @@ herdr pane run <root-pane-id> "<task>"
 
 The `idle` wait is what keeps the prompt from being typed into a TUI that has not started yet.
 
-Then **fire and forget**: report the workspace label and ID, worktree path, branch, and agent in one or two lines, and treat the spawned agent as out of scope for the rest of the session. Inspect it only if the user asks.
+Then **fire and forget**: report the machine (Local or the remote label), workspace label and ID, worktree path, branch, and agent in one or two lines, and treat the spawned agent as out of scope for the rest of the session. Inspect it only if the user asks.

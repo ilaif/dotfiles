@@ -1,6 +1,6 @@
 ---
 name: close-space
-description: Close a Herdr workspace created by new-space — stop its processes, remove its git worktree and local branch, and close the workspace. Use when the user asks to close, finish, or clean up a space or worktree.
+description: Close a Herdr workspace created by new-space (local or on a remote Herdr machine) — stop its processes, remove its git worktree and local branch, and close the workspace. Use when the user asks to close, finish, or clean up a space or worktree.
 ---
 
 # close-space
@@ -8,6 +8,8 @@ description: Close a Herdr workspace created by new-space — stop its processes
 The argument names one or more spaces: a workspace label, workspace ID, branch, or worktree path. No argument means the current workspace (`$HERDR_WORKSPACE_ID`). Run the whole sequence per space in one pass.
 
 Requires `HERDR_ENV=1` — if unset, say you are not inside Herdr and stop.
+
+A leading `@<machine>` names a remote Herdr machine, resolved from `herdr machine list --json` as in new-space. For it, every `herdr` command below takes the `--machine <label>` prefix and every shell command (`git`, `ps`, `kill`) runs as `ssh <target> '<command>'`; `$HERDR_WORKSPACE_ID` never refers to a remote space.
 
 ## 1. Resolve
 
@@ -42,7 +44,7 @@ skip="$(pid=$$; while [ "$pid" -gt 1 ]; do echo "$pid"; pid=$(ps -o ppid= -p "$p
 ps -axo pid=,command= | WT_DIR="<path>" awk -v skip="^(${skip})$" 'index($0, ENVIRON["WT_DIR"]) && $1 !~ skip { print $1 }' | xargs kill -TERM
 ```
 
-The path travels via the environment so the awk itself never matches. In the act repo, never use `<worktree>/bin/dx wt rm` for this — its orphan sweep kills its own parent and leaves a half-deleted tree.
+The path travels via the environment so the awk itself never matches. Don't hand this to a repo's own worktree-removal wrapper: an orphan sweep in such a tool can kill its own parent and leave a half-deleted tree.
 
 ## 4. Remove the worktree and branch
 
