@@ -1,0 +1,21 @@
+id = "ilai.claude-recap"
+name = "Claude Recap"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Shows each Claude agent's end-of-turn recap as a sidebar row ($recap token) and in a popup with the full text"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "show"
+title = "Show Claude recaps"
+description = "Popup with the full recap of the focused Claude agent first, then every other agent"
+contexts = ["workspace", "global"]
+command = ["./show.sh"]
+
+[[panes]]
+id = "viewer"
+title = "Recaps"
+placement = "popup"
+width = "80%"
+height = "80%"
+command = ["./view.sh"]

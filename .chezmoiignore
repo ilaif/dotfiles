@@ -6,3 +6,5 @@ Makefile
 
 .oh-my-zsh/cache/
 claude-settings.json
+
+__pycache__/

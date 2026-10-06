@@ -1,0 +1,20 @@
+id = "ilai.spaces-control"
+name = "Spaces Control"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Popup to jump to a space (enter) or toggle each space between shown, parked (bottom of the sidebar, still running) and hidden (closed, reopenable with its Claude sessions resumed)"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "toggle"
+title = "Spaces control"
+contexts = ["workspace", "global"]
+command = ["./open.sh"]
+
+[[panes]]
+id = "picker"
+title = "Spaces"
+placement = "popup"
+width = "70%"
+height = "60%"
+command = ["./picker.sh"]

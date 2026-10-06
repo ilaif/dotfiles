@@ -1,0 +1,30 @@
+id = "ilai.dev-space"
+name = "Dev Space"
+version = "0.10.1"
+min_herdr_version = "0.9.1"
+description = "Open a dev space on a repo or a worktree of it (new branch, existing branch, or an existing worktree): claude (left, 40%, with a terminal below at 15% height) + nvim above a review pane (right, 60%). Close space removes the worktree from a non-modal split pane."
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "open"
+title = "New space (pick dir / worktree)"
+contexts = ["workspace", "global"]
+command = ["./apply.sh"]
+
+[[actions]]
+id = "open-here"
+title = "New space from this repo (skip dir picker)"
+contexts = ["workspace", "global"]
+command = ["./apply.sh", "--here"]
+
+[[actions]]
+id = "close"
+title = "Close space (remove worktree)"
+contexts = ["workspace", "global"]
+command = ["./close.sh"]
+
+[[panes]]
+id = "close-worktree"
+title = "Close worktree"
+placement = "split"
+command = ["bash", "./close-worktree.sh"]

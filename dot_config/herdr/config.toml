@@ -61,7 +61,11 @@ command = "ilai.claude-recap.show"
 description = "Show Claude recaps (focused agent first)"
 
 [[keys.command]]
-key = "prefix+alt+h"
+key = "prefix+k"
 type = "plugin_action"
-command = "ilai.space-visibility.toggle"
-description = "Show / park / hide spaces"
+command = "ilai.spaces-control.toggle"
+description = "Spaces control"
+
+[theme]
+name = "dracula"
+auto_switch = false
