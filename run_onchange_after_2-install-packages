@@ -33,6 +33,7 @@ echox "Install global npm packages"
 pnpm setup || echo "pnpm already setup"
 pnpm add -g @githubnext/github-copilot-cli
 pnpm add -g @escape.tech/mookme
+pnpm add -g ccstatusline
 
 # Other apps
 echox "Other apps to install:"
