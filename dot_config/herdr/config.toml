@@ -1,18 +1,25 @@
 onboarding = false
 [keys]
 next_agent = "ctrl+cmd+a"
+workspace_picker = ["prefix+w", "ctrl+k"]
+focus_pane_up = "alt+i"
+focus_pane_down = ["prefix+j", "alt+k"]
+focus_pane_left = ["prefix+h", "alt+j"]
+focus_pane_right = ["prefix+l", "alt+l"]
 
 [ui.toast]
 delivery = "system"
 
 [ui]
+sidebar_width = 64
+sidebar_max_width = 128
 show_agent_labels_on_pane_borders = true
 
 agent_panel_sort = "spaces"
 
 status_indicators = "dots"
 [ui.sidebar.agents.rows_by_agent]
-claude = [["state_icon", "workspace", "tab"], ["agent"], [{ token = "$recap", dim = true }]]
+claude = [["state_icon", "workspace", "tab"], [{ token = "$recap", dim = true }], [{ token = "$open1", fg = "#50fa7b" }, { token = "$open2", fg = "#50fa7b" }, { token = "$open3", fg = "#50fa7b" }, { token = "$open4", fg = "#50fa7b" }, { token = "$open5", fg = "#50fa7b" }, { token = "$open6", fg = "#50fa7b" }, { token = "$open7", fg = "#50fa7b" }, { token = "$open8", fg = "#50fa7b" }, { token = "$draft1", fg = "#6272a4" }, { token = "$draft2", fg = "#6272a4" }, { token = "$draft3", fg = "#6272a4" }, { token = "$draft4", fg = "#6272a4" }, { token = "$draft5", fg = "#6272a4" }, { token = "$draft6", fg = "#6272a4" }, { token = "$draft7", fg = "#6272a4" }, { token = "$draft8", fg = "#6272a4" }]]
 
 # [ui.sidebar.agents]
 # rows = [["state_icon", "workspace", "tab"], ["state_text", "agent"]]
@@ -61,6 +68,12 @@ command = "ilai.claude-recap.show"
 description = "Show Claude recaps (focused agent first)"
 
 [[keys.command]]
+key = "prefix+alt+g"
+type = "plugin_action"
+command = "ilai.claude-prs.show"
+description = "Show Claude session PRs (enter opens)"
+
+[[keys.command]]
 key = "prefix+k"
 type = "plugin_action"
 command = "ilai.spaces-control.toggle"
@@ -69,3 +82,9 @@ description = "Spaces control"
 [theme]
 name = "dracula"
 auto_switch = false
+
+[[keys.command]]
+key = "prefix+alt+p"
+type = "plugin_action"
+command = "ilai.spaces-control.cleanup"
+description = "Clean up worktrees"

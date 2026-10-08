@@ -86,7 +86,7 @@ Start the agent's bare interactive executable in the **root pane** (not the bott
 ```bash
 herdr pane run <root-pane-id> "<agent>"
 herdr agent wait <root-pane-id> --until idle --timeout 60000
-herdr pane run <root-pane-id> "<task>"
+herdr agent prompt <root-pane-id> "<task>"
 ```
 
 The `idle` wait is what keeps the prompt from being typed into a TUI that has not started yet.

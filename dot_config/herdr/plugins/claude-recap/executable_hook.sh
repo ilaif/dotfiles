@@ -11,11 +11,11 @@ HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
 STATE_DIR="${HERDR_CLAUDE_RECAP_STATE_DIR:-$HOME/.local/state/herdr-claude-recap}"
 mkdir -p "$STATE_DIR"
 HOOK_INPUT="$(mktemp "${TMPDIR:-/tmp}/herdr-claude-recap.XXXXXX")" || exit 0
-trap 'rm -f "$HOOK_INPUT"' EXIT HUP INT TERM
 cat >"$HOOK_INPUT" 2>/dev/null || true
 
-HERDR_BIN="$HERDR_BIN" STATE_DIR="$STATE_DIR" HOOK_INPUT="$HOOK_INPUT" python3 - <<'PY'
-import json, os, re, subprocess, sys, time
+HERDR_BIN="$HERDR_BIN" STATE_DIR="$STATE_DIR" HOOK_INPUT="$HOOK_INPUT" nohup python3 - >/dev/null 2>&1 <<'PY' &
+import atexit, json, os, re, subprocess, sys, time
+atexit.register(lambda: os.remove(os.environ["HOOK_INPUT"]))
 
 pane_id = os.environ["HERDR_PANE_ID"]
 herdr = os.environ["HERDR_BIN"]

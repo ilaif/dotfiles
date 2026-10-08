@@ -1,0 +1,21 @@
+id = "ilai.claude-prs"
+name = "Claude PRs"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Shows the PRs each Claude session created or pushed to as a sidebar row ($prs token) and in a popup that opens them"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "show"
+title = "Show Claude PRs"
+description = "Popup listing every live Claude session's PRs (focused agent first); enter opens the PR"
+contexts = ["workspace", "global"]
+command = ["./show.sh"]
+
+[[panes]]
+id = "viewer"
+title = "PRs"
+placement = "popup"
+width = "80%"
+height = "60%"
+command = ["./view.sh"]

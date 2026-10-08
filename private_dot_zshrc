@@ -203,7 +203,7 @@ _coder_completions() {
 compdef _coder_completions coder
 # ============ END coder COMPLETION ==============
 
-
+[ "$TERM_PROGRAM" = herdr ] && export FORCE_HYPERLINK=1
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"

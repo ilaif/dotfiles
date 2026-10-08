@@ -11,7 +11,7 @@ command -v herdr >/dev/null || exit 0
 INSTALLED="$(herdr plugin list)"
 
 # Own plugins are tracked in dot_config/herdr/plugins and linked in place.
-for plugin in claude-recap dev-space spaces-control; do
+for plugin in claude-prs claude-recap dev-space spaces-control terminal-input; do
   grep -q "local:$HOME/.config/herdr/plugins/$plugin\]" <<<"$INSTALLED" && continue
   echox "Linking $plugin"
   herdr plugin link "$HOME/.config/herdr/plugins/$plugin"

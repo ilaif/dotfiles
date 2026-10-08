@@ -18,3 +18,15 @@ placement = "popup"
 width = "70%"
 height = "60%"
 command = ["./picker.sh"]
+
+[[actions]]
+id = "cleanup"
+title = "Clean up worktrees"
+contexts = ["workspace", "global"]
+command = ["./cleanup-open.sh"]
+
+[[panes]]
+id = "cleanup"
+title = "Worktree cleanup"
+placement = "tab"
+command = ["./cleanup-picker.sh"]

@@ -64,3 +64,7 @@ herdr workspace close <workspace-id>
 ```
 
 When the target is the workspace you are running in, closing it ends this session — send the report first and make the close the last call.
+
+## 6. Podium workspace, after its last space
+
+For a `@<machine>` close that left no other space on the machine (only `/workspace/act` in `herdr --machine <label> workspace list`), ask what to do with the Podium workspace: keep it (the default), stop it (`dx ws stop <name>`; volumes persist), or delete it (`dx ws rm <name> --yes`, which also forgets its Herdr machine). Run `dx` from the act checkout, and delete only on an explicit answer.
