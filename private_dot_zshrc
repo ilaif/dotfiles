@@ -210,3 +210,9 @@ compdef _coder_completions coder
 
 # opencode
 export PATH=$HOME/.opencode/bin:$PATH
+
+# >>> act-dx completion >>>
+if [ -f "/Users/ilai/.config/act-dx/completions/dx.zsh" ]; then
+  source "/Users/ilai/.config/act-dx/completions/dx.zsh"
+fi
+# <<< act-dx completion <<<

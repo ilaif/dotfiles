@@ -25,8 +25,10 @@ fi
 hook="$(cat)"
 field() { printf '%s' "$hook" | jq -r "$1"; }
 
-[ -z "$(field '.agent_id // empty')" ] || exit 0
 event="$(field .hook_event_name)"
+# A subagent shares its parent's session_id, so the PRs it opens or pushes belong to that session; only its
+# other events are skipped.
+[ -z "$(field '.agent_id // empty')" ] || [ "$event" = "PostToolUse" ] || exit 0
 session_id="$(field .session_id)"
 cwd="$(field .cwd)"
 pane_id="${HERDR_PANE_ID:-}"
@@ -44,7 +46,8 @@ report() {
 
 publish() {
   set --
-  while IFS= read -r arg; do set -- "$@" "$arg"; done <<EOF
+  # With no open or draft PRs the second substitution is empty; skip that blank line, herdr rejects '' as an option.
+  while IFS= read -r arg; do [ -z "$arg" ] || set -- "$@" "$arg"; done <<EOF
 $(clear_args)
 $(jq -r -L "$PLUGIN_DIR" --argjson slots "$SLOTS" 'include "review";
   def slots($kind; $states): [.prs[] | select(.state as $s | $states | index($s))][-$slots:]
@@ -63,12 +66,26 @@ refresh() {
   done
   wait
   states="$(cat "$tmp"/* 2>/dev/null | jq -s 'add // {}')"
-  jq --argjson s "$states" '.prs[] |= (. + ($s[.url] // {}))' "$state_file" >"$tmp/state.json"
+  jq --argjson s "$states" '.prs[] |= (. + ($s[.url] // {})) | .refreshed_ms = (now * 1000 | floor)' "$state_file" >"$tmp/state.json"
   mv "$tmp/state.json" "$state_file"
   rm -rf "$tmp"
 }
 
-branch_pr_url() { (cd "$cwd" && gh pr view --json url --jq .url 2>/dev/null) || true; }
+branch_pr_url() { (cd "$1" && gh pr view --json url --jq .url 2>/dev/null) || true; }
+
+# The Bash tool resets its cwd after each call, so a push in another repo names it in the command itself:
+# `git -C <dir> push` or the last `cd <dir>` before it. Anything else pushed from the session's cwd.
+push_dir() {
+  dir="$(printf '%s' "$1" | sed -nE 's/.*git -C +([^ ;&|]+) +push.*/\1/p')"
+  [ -n "$dir" ] || dir="$(printf '%s' "$1" | sed -nE 's/.*(^|[;&|( ])cd +([^ ;&|)]+).*git push.*/\2/p')"
+  case "$dir" in
+    '') dir="$cwd" ;;
+    '~'*) dir="$HOME${dir#\~}" ;;
+    /*) ;;
+    *) dir="$cwd/$dir" ;;
+  esac
+  printf '%s' "$dir"
+}
 
 if [ "$event" = "SessionEnd" ]; then
   set --
@@ -81,12 +98,13 @@ fi
 
 urls=""
 case "$event" in
-  SessionStart) urls="$(branch_pr_url)" ;;
+  SessionStart) urls="$(branch_pr_url "$cwd")" ;;
   PostToolUse)
     urls="$(field '"\(.tool_response.stdout // "")\n\(.tool_response.stderr // "")"' | grep -oE "$PR_URL" || true)"
-    case "$(field .tool_input.command)" in
+    command="$(field .tool_input.command)"
+    case "$command" in
       *"git push"*) urls="$urls
-$(branch_pr_url)" ;;
+$(branch_pr_url "$(push_dir "$command")")" ;;
     esac
     ;;
 esac

@@ -19,7 +19,8 @@
     "eli5@claude-community": true,
     "frontend-design@claude-code-plugins": false,
     "i-have-adhd@i-have-adhd": true,
-    "pr-review-toolkit@claude-plugins-official": false
+    "pr-review-toolkit@claude-plugins-official": false,
+    "baz@baz": true
   },
   "extraKnownMarketplaces": {
     "claude-community": {
@@ -56,6 +57,12 @@
       "source": {
         "source": "github",
         "repo": "kepano/obsidian-skills"
+      }
+    },
+    "baz": {
+      "source": {
+        "repo": "baz-scm/baz-plugin",
+        "source": "github"
       }
     }
   },
