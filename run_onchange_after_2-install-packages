@@ -24,7 +24,7 @@ set -e
 
 # GH extensions
 echox "Installing gh extensions"
-[ -n "${GITHUB_TOKEN}" ] || gh auth login
+gh auth status >/dev/null 2>&1 || gh auth login
 gh extension install ilaif/gh-prx || true
 gh extension install mislav/gh-branch
 
