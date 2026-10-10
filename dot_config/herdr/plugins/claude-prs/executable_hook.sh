@@ -109,14 +109,17 @@ $(branch_pr_url "$(push_dir "$command")")" ;;
     ;;
 esac
 
-[ -f "$state_file" ] || jq -n --arg id "$session_id" '{session_id: $id, prs: []}' >"$state_file"
+if [ ! -s "$state_file" ]; then
+  jq -n --arg id "$session_id" '{session_id: $id, prs: []}' >"$state_file.$$"
+  mv "$state_file.$$" "$state_file"
+fi
 jq --arg urls "$urls" --arg pane "$pane_id" --arg cwd "$cwd" '
   reduce ($urls | split("\n")[] | select(test("/pull/[0-9]+$"))) as $url (.;
     if any(.prs[]; .url == $url) then . else
       .prs += [{url: $url, repo: ($url | split("/")[4]), number: ($url | split("/")[6] | tonumber), added_ms: (now * 1000 | floor)}]
     end)
-  | .pane_id = $pane | .cwd = $cwd | .updated_ms = (now * 1000 | floor)' "$state_file" >"$state_file.tmp"
-mv "$state_file.tmp" "$state_file"
+  | .pane_id = $pane | .cwd = $cwd | .updated_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
+mv "$state_file.$$" "$state_file"
 
 [ "$(jq '.prs | length' "$state_file")" -gt 0 ] || exit 0
 publish

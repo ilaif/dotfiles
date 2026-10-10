@@ -128,6 +128,19 @@ def remote_spaces():
     return out
 
 
+def machines():
+    status = {m["id"]: m for m in json.loads(subprocess.run([HERDR, "machine", "status", "--json"], capture_output=True, text=True).stdout)}
+    return [{**m, **status[m["id"]]} for m in json.loads(subprocess.run([HERDR, "machine", "list", "--json"], capture_output=True, text=True).stdout)]
+
+
+def set_machine(state, machine_id):
+    m = next(m for m in machines() if m["id"] == machine_id)
+    action = {"hidden": "remove", "parked": "disable", "shown": "reconnect" if m["enabled"] else "enable"}[state]
+    subprocess.run([HERDR, "machine", action, machine_id], check=True, capture_output=True)
+    if os.path.exists(REMOTE_CACHE):
+        os.remove(REMOTE_CACHE)
+
+
 def closed_worktrees():
     """Git worktrees of the open repos that have no open space and are not hidden entries."""
     repos = {ws["worktree"]["repo_root"] for ws in workspaces() if ws.get("worktree")}
@@ -157,6 +170,9 @@ def rows():
         for ws in remote:
             out.append((f"rm:{machine}:{ws['workspace_id']}", "shown", ws["label"], ws["agent_status"], "",
                         f"remote · {machine}", repo_of(ws)))
+    for m in machines():
+        out.append((f"mc:{m['id']}", "shown" if m["enabled"] else "parked", m["label"], m["status"],
+                    m["error"] or m["target"], "remotes", "machines"))
     return out
 
 
@@ -192,6 +208,8 @@ def move(key, direction):
 
 def focus(key):
     kind, ref = key.split(":", 1)
+    if kind == "mc":
+        return
     if kind == "rm":
         machine, ws_id = ref.rsplit(":", 1)
         subprocess.run([HERDR, "--machine", machine, "workspace", "focus", ws_id], check=True, capture_output=True)
@@ -252,6 +270,9 @@ def detach_worktree(ws):
 
 def set_state(state, key):
     kind, ref = key.split(":", 1)
+    if kind == "mc":
+        set_machine(state, ref)
+        return
     if kind == "hid":
         unhide(ref, resume=state == "shown")
         ref = ws_at(ref)["workspace_id"]

@@ -1,5 +1,6 @@
 onboarding = false
 [keys]
+prefix = "ctrl+a"
 next_agent = "ctrl+cmd+a"
 workspace_picker = ["prefix+w", "ctrl+k"]
 focus_pane_up = "alt+i"
