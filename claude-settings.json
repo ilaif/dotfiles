@@ -16,7 +16,7 @@
     "claude-code-setup@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "crit@crit": true,
-    "eli5@claude-community": true,
+    "eli5@claude-community": false,
     "frontend-design@claude-code-plugins": false,
     "i-have-adhd@i-have-adhd": true,
     "pr-review-toolkit@claude-plugins-official": false,
