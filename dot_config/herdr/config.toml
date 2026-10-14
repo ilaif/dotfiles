@@ -8,7 +8,7 @@ focus_pane_left = ["prefix+h", "alt+j"]
 focus_pane_right = ["prefix+l", "alt+l"]
 
 [ui.toast]
-delivery = "system"
+delivery = "off"
 
 [ui]
 sidebar_width = 64
