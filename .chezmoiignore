@@ -8,3 +8,4 @@ Makefile
 claude-settings.json
 
 __pycache__/
+install.sh
