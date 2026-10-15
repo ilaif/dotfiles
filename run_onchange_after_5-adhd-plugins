@@ -8,13 +8,13 @@ echox() {
 
 # i-have-adhd for Claude Code and Codex, per https://github.com/ayghri/i-have-adhd/blob/main/INSTALL.md.
 # Always-on: ~/.claude/.i-have-adhd-always (Claude's SessionStart hook) and ~/.codex/AGENTS.md (Codex).
-if command -v claude >/dev/null && ! claude plugin list 2>/dev/null | grep -q "i-have-adhd@i-have-adhd"; then
+if claude --version >/dev/null 2>&1 && ! claude plugin list 2>/dev/null | grep -q "i-have-adhd@i-have-adhd"; then
   echox "Installing for Claude Code"
   claude plugin marketplace add ayghri/i-have-adhd >/dev/null
   claude plugin install i-have-adhd@i-have-adhd >/dev/null
 fi
 
-if command -v codex >/dev/null && ! codex plugin list 2>/dev/null | grep -q "i-have-adhd@i-have-adhd"; then
+if codex --version >/dev/null 2>&1 && ! codex plugin list 2>/dev/null | grep -q "i-have-adhd@i-have-adhd"; then
   echox "Installing for Codex"
   codex plugin marketplace add ayghri/i-have-adhd --ref main >/dev/null
   codex plugin add i-have-adhd@i-have-adhd >/dev/null

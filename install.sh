@@ -8,4 +8,6 @@ cd "$(dirname "$0")"
 mkdir -p "$HOME/.claude" "$HOME/.codex"
 touch "$HOME/.claude/.i-have-adhd-always"
 ln -sfn "$PWD/dot_codex/AGENTS.md" "$HOME/.codex/AGENTS.md"
-bash ./run_onchange_after_5-adhd-plugins
+# The agent CLIs are mise shims for the act checkout's Node, so they only run from inside it, and only once
+# its Toolchain step has installed that Node: on a workspace's first boot Codex gets its plugin on the next one.
+(cd "$PODIUM_WORKSPACE_DIR" && bash "$OLDPWD/run_onchange_after_5-adhd-plugins")
