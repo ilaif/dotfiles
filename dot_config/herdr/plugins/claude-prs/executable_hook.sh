@@ -121,7 +121,9 @@ jq --arg urls "$urls" --arg pane "$pane_id" --arg cwd "$cwd" '
   | .pane_id = $pane | .cwd = $cwd | .updated_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
 mv "$state_file.$$" "$state_file"
 
-[ "$(jq '.prs | length' "$state_file")" -gt 0 ] || exit 0
+# SessionStart publishes even with no PRs: it clears tokens a previous session in this pane left behind
+# (its SessionEnd clear does not reliably land on /clear or resume).
+[ "$(jq '.prs | length' "$state_file")" -gt 0 ] || [ "$event" = "SessionStart" ] || exit 0
 publish
 case "$event" in
   SessionStart | Stop) refresh && publish ;;

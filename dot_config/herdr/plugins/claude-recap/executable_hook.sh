@@ -1,6 +1,7 @@
 #!/bin/sh
-# Claude Code hook (Stop, SessionEnd). Stores the turn's final assistant message per Herdr pane
-# and publishes its first line as the `recap` sidebar token.
+# Claude Code hook (Stop, SessionEnd, UserPromptSubmit). Stores the turn's final assistant message per
+# Herdr pane and publishes its first line as the `recap` sidebar token. When that message ends with a
+# `Next:` line asking the user to act, it also publishes the `next` token until the user replies.
 set -eu
 
 [ "${HERDR_ENV:-}" = "1" ] || exit 0
@@ -40,8 +41,12 @@ def report(*args):
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5, check=False,
     )
 
+if event == "UserPromptSubmit":
+    report("--clear-token", "next", "--seq", str(time.time_ns()))
+    raise SystemExit(0)
+
 if event == "SessionEnd":
-    report("--clear-token", "recap")
+    report("--clear-token", "recap", "--clear-token", "next")
     try:
         os.remove(state_file)
     except FileNotFoundError:
@@ -97,5 +102,17 @@ with open(state_file, "w", encoding="utf-8") as fh:
         fh,
     )
 
-report("--token", "recap=" + short, "--seq", str(time.time_ns()))
+def next_step(markdown):
+    lines = [re.sub(r"(\*\*|__|`)", "", raw).strip() for raw in markdown.splitlines()]
+    step = next((line for line in reversed(lines) if re.match(r"^next\b\s*:", line, re.I)), None)
+    if step is None:
+        return None
+    step = re.sub(r"^next\b\s*:\s*", "", step, flags=re.I)
+    if re.match(r"(nothing\b|no action\b|i['’]ll\b|i will\b)", step, re.I):
+        return None
+    return step
+
+step = next_step(text)
+next_args = ["--token", "next=◆"] if step else ["--clear-token", "next"]
+report("--token", "recap=" + short, *next_args, "--seq", str(time.time_ns()))
 PY
