@@ -1,7 +1,13 @@
 #!/bin/bash
 # Deep-merge the tracked keys from claude-settings.json over the live file.
 # Keys Claude Code or other tools write (hooks, autoMode, ...) are kept as-is.
-jq -j -s 'reduce .[] as $x ({}; . * $x)' - <(cat <<'EOF'
+# herdr-notify.py is appended to Stop/Notification when missing, since `*` would replace those arrays.
+jq -j -s --arg notify 'python3 ~/.claude/hooks/herdr-notify.py' '
+  reduce .[] as $x ({}; . * $x)
+  | reduce ("Stop", "Notification") as $e (.;
+      if any(.hooks[$e][]?.hooks[]; .command == $notify) then .
+      else .hooks[$e] += [{hooks: [{type: "command", command: $notify, timeout: 10}]}] end)
+' - <(cat <<'EOF'
 {{ include "claude-settings.json" }}
 EOF
 )
