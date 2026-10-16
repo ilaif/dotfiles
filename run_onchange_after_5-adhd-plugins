@@ -19,3 +19,53 @@ if codex --version >/dev/null 2>&1 && ! codex plugin list 2>/dev/null | grep -q 
   codex plugin marketplace add ayghri/i-have-adhd --ref main >/dev/null
   codex plugin add i-have-adhd@i-have-adhd >/dev/null
 fi
+
+# Codex asks to review a plugin's hooks before they run. This plugin is our own choice, so its current hooks are
+# trusted through codex app-server, as Codex's review prompt would record them; other hooks still get reviewed.
+if codex --version >/dev/null 2>&1; then
+  node --input-type=module - i-have-adhd@i-have-adhd <<'JS' || echox "Codex hook trust failed; Codex asks to review the plugin's hooks"
+import { spawn } from 'node:child_process'
+import { createInterface } from 'node:readline'
+
+const plugin = process.argv[2]
+const fail = message => {
+  console.error(message)
+  server.kill()
+  process.exit(1)
+}
+const server = spawn('codex', ['app-server'], { stdio: ['pipe', 'pipe', 'ignore'] })
+  .on('error', error => fail(`codex app-server did not start: ${error.message}`))
+  .on('exit', code => fail(`codex app-server exited (${code}) before answering`))
+setTimeout(() => fail('codex app-server did not answer within 60s'), 60_000).unref()
+const pending = new Map()
+createInterface({ input: server.stdout }).on('line', line => {
+  const message = JSON.parse(line)
+  pending.get(message.id)?.(message)
+  pending.delete(message.id)
+})
+let nextId = 0
+const request = (method, params) =>
+  new Promise((resolve, reject) => {
+    pending.set(++nextId, m => (m.error ? reject(new Error(`${method}: ${JSON.stringify(m.error)}`)) : resolve(m.result)))
+    server.stdin.write(`${JSON.stringify({ id: nextId, method, params })}\n`)
+  })
+
+await request('initialize', { clientInfo: { name: 'dotfiles', title: null, version: '1' }, capabilities: null })
+server.stdin.write(`${JSON.stringify({ method: 'initialized' })}\n`)
+const { data } = await request('hooks/list', { cwds: [process.cwd()] })
+const review = data
+  .flatMap(entry => entry.hooks)
+  .filter(hook => hook.pluginId === plugin && ['untrusted', 'modified'].includes(hook.trustStatus))
+if (review.length > 0)
+  await request('config/batchWrite', {
+    edits: [
+      {
+        keyPath: 'hooks.state',
+        value: Object.fromEntries(review.map(hook => [hook.key, { trusted_hash: hook.currentHash }])),
+        mergeStrategy: 'upsert',
+      },
+    ],
+  })
+server.removeAllListeners('exit').kill()
+JS
+fi
