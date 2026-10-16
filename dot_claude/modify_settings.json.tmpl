@@ -1,12 +1,23 @@
 #!/bin/bash
 # Deep-merge the tracked keys from claude-settings.json over the live file.
 # Keys Claude Code or other tools write (hooks, autoMode, ...) are kept as-is.
-# herdr-notify.py is appended to Stop/Notification when missing, since `*` would replace those arrays.
-jq -j -s --arg notify 'python3 ~/.claude/hooks/herdr-notify.py' '
+# Our hooks are appended per event when missing, since `*` would replace those arrays.
+{{- $plugins := joinPath .chezmoi.homeDir ".config/herdr/plugins" }}
+jq -j -s --argjson hooks '[
+  ["Stop", "python3 ~/.claude/hooks/herdr-notify.py"],
+  ["Notification", "python3 ~/.claude/hooks/herdr-notify.py"],
+  ["Stop", "bash '\''{{ $plugins }}/claude-recap/hook.sh'\''"],
+  ["SessionEnd", "bash '\''{{ $plugins }}/claude-recap/hook.sh'\''"],
+  ["UserPromptSubmit", "bash '\''{{ $plugins }}/claude-recap/hook.sh'\''"],
+  ["Stop", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
+  ["SessionEnd", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
+  ["SessionStart", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
+  ["PostToolUse", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"]
+]' '
   reduce .[] as $x ({}; . * $x)
-  | reduce ("Stop", "Notification") as $e (.;
-      if any(.hooks[$e][]?.hooks[]; .command == $notify) then .
-      else .hooks[$e] += [{hooks: [{type: "command", command: $notify, timeout: 10}]}] end)
+  | reduce $hooks[] as [$e, $cmd] (.;
+      if any(.hooks[$e][]?.hooks[]; .command == $cmd) then .
+      else .hooks[$e] += [{hooks: [{type: "command", command: $cmd, timeout: 10}]}] end)
 ' - <(cat <<'EOF'
 {{ include "claude-settings.json" }}
 EOF
