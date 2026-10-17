@@ -21,7 +21,7 @@ fi
 
 pr_line() {
   IFS=$'\t' read -r url space ref <<<"$1"
-  gh pr view "$url" --json state,isDraft,title,statusCheckRollup,author,latestReviews,reviewRequests \
+  gh pr view "$url" --json state,isDraft,title,statusCheckRollup,author,latestReviews,reviewRequests,mergeStateStatus \
     | jq -r -L "$(dirname "$0")" --arg url "$url" --arg space "$space" --arg ref "$ref" 'include "review";
     def ci: [.statusCheckRollup[] | (.conclusion // .state)] as $c
       | if ($c | any(. == "FAILURE" or . == "ERROR" or . == "TIMED_OUT")) then "✗"

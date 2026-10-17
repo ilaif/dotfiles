@@ -35,6 +35,13 @@ if hook.get("agent_id"):
 
 event = hook.get("hook_event_name") or ""
 
+# Background sessions run in the Claude daemon and inherit HERDR_PANE_ID from the pane that spawned it, so
+# only touch a pane whose live agent is this session (or none, once it has exited).
+pane = subprocess.run([herdr, "pane", "get", pane_id], capture_output=True, text=True, timeout=5, check=False)
+owner = ((json.loads(pane.stdout or "{}").get("result") or {}).get("pane") or {}).get("agent_session") or {}
+if owner.get("value") not in (None, hook.get("session_id")):
+    raise SystemExit(0)
+
 def report(*args):
     subprocess.run(
         [herdr, "pane", "report-metadata", pane_id, "--source", source, *args],

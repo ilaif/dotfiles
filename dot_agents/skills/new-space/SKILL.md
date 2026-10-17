@@ -5,9 +5,7 @@ description: Create a git worktree, open it as a Herdr workspace, and fire-and-f
 
 # new-space
 
-The argument is the task. Run the whole sequence in one pass.
-
-Requires `HERDR_ENV=1` — if unset, say you are not inside Herdr and stop.
+The argument is the task. Parse and slugify in your head, then make **one** tool call: the script. Don't check `HERDR_ENV`, list machines, or inspect the repo first — the script's preflight does all of that.
 
 ## 1. Parse
 
@@ -16,16 +14,6 @@ A leading `@<where>`, or naming a remote workspace in words ("in workspace abc-1
 `codex: fix the flaky auth test` → local, agent `codex`, task `fix the flaky auth test`.
 `@abc-123 claude: fix the flaky auth test` or `open a new space in workspace abc-123 to fix the flaky auth test` → remote machine `abc-123`.
 
-### Remote target
-
-Remote machines are saved Herdr machines, each with a label (often `<scope>/<name>`) and an SSH target:
-
-```bash
-herdr machine list --json
-```
-
-Match `<where>` against the label, the label after `/`, or the target's last dot-separated part. Several matches: list them and ask. No match: check `~/.claude/CLAUDE.local.md` for how to save that machine, save it, and list again; with no instructions there, say so and stop.
-
 ## 2. Slugify
 
 Slugify the task into a branch name, leading with the ticket ID if the task names one (`abc-123-<rest>`).
@@ -33,10 +21,18 @@ Slugify the task into a branch name, leading with the ticket ID if the task name
 ## 3. Run the script
 
 ```bash
-node ~/.claude/skills/new-space/new-space.ts --slug <slug> --agent <agent> --task "<task>" [--machine <label>]
+node ~/.claude/skills/new-space/new-space.ts --slug <slug> --agent <agent> --task "<task>" [--machine <where>]
 ```
 
-It fetches and bases on the default branch, creates the worktree as a sibling of the repo (`~/git/<slug>`, retrying `-2`, `-3`, … on collision), splits a 10% bottom terminal, launches the agent in the root pane, submits the task as a prompt, then runs the repo's worktree setup in the bottom pane. Local runs use the repo of the current directory; remote runs use the machine's main checkout. The branch stays local — the spawned agent owns pushing.
+Pass `<where>` as the user wrote it; the script matches it against each saved Herdr machine's label, the label after `/`, or the SSH target's last dot-separated part.
+
+**Preflight.** Before touching anything, the script checks every prerequisite (inside Herdr, `herdr` and the agent CLI on PATH, machine match / enabled / reachable, git repo, `origin`, `origin/HEAD`) and on failure exits 1 with a `new-space preflight failed:` list — every problem at once, each with its fix. Fix what you can and rerun once:
+
+- No machine match: follow `~/.claude/CLAUDE.local.md` to save the machine, then rerun. No instructions there: relay and stop.
+- Several matches: list them, ask which, rerun with the full label.
+- Anything that needs the user (not inside Herdr, `herdr machine reconnect`): relay the line and stop.
+
+**Run.** It fetches and bases on the default branch, creates the worktree as a sibling of the repo (`~/git/<slug>`, retrying `-2`, `-3`, … on collision), splits a 10% bottom terminal, launches the agent in the root pane, submits the task as a prompt, then runs the repo's worktree setup in the bottom pane. Local runs use the repo of the current directory; remote runs use the machine's main checkout. The branch stays local — the spawned agent owns pushing.
 
 ## 4. Report
 

@@ -41,6 +41,10 @@ clear_args() {
 
 report() {
   [ "${HERDR_ENV:-}" = "1" ] && [ -n "$pane_id" ] || return 0
+  # Background sessions run in the Claude daemon and inherit HERDR_PANE_ID from the pane that spawned it, so
+  # only write to a pane whose live agent is this session (or none, once it has exited).
+  owner="$("$HERDR" pane get "$pane_id" 2>/dev/null | jq -r '.result.pane.agent_session.value // empty')"
+  [ -z "$owner" ] || [ "$owner" = "$session_id" ] || return 0
   "$HERDR" pane report-metadata "$pane_id" --source "$SOURCE" "$@" >/dev/null 2>&1
 }
 
@@ -60,7 +64,7 @@ EOF
 refresh() {
   tmp="$(mktemp -d)"
   for url in $(jq -r '.prs[] | select(.state != "MERGED" and .state != "CLOSED") | .url' "$state_file"); do
-    gh pr view "$url" --json url,state,isDraft,author,latestReviews,reviewRequests \
+    gh pr view "$url" --json url,state,isDraft,author,latestReviews,reviewRequests,mergeStateStatus \
       | jq -L "$PLUGIN_DIR" 'include "review";
         {(.url): {state: (if .isDraft and .state == "OPEN" then "DRAFT" else .state end), review: review_state}}' >"$tmp/${url##*/}" &
   done

@@ -1,66 +1,69 @@
-// Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--machine <label>] [--repo <path>]
-import { execFileSync } from "node:child_process";
+// Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--machine <where>] [--repo <path>]
 import { dirname } from "node:path";
 import { parseArgs } from "node:util";
+import { checkHerdr, failIfProblems, on, problems, resolveMachine, tryRun } from "./herdr-lib.ts";
+
+const AGENTS = ["claude", "codex", "pi", "opencode", "omp"];
 
 const { values: args } = parseArgs({
   options: {
-    slug: { type: "string" },
-    task: { type: "string" },
+    slug: { type: "string", default: "" },
+    task: { type: "string", default: "" },
     agent: { type: "string", default: "claude" },
     machine: { type: "string" },
     repo: { type: "string" },
   },
 });
-if (!args.slug || !args.task) throw new Error("--slug and --task are required");
-if (process.env.HERDR_ENV !== "1") throw new Error("not inside Herdr (HERDR_ENV unset)");
-
-const machineFlag = args.machine ? ["--machine", args.machine] : [];
-
-function run(cmd: string, argv: string[]): string {
-  return execFileSync(cmd, argv, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-}
-
-function herdr(...argv: string[]) {
-  const out = run("herdr", [...machineFlag, ...argv]);
-  return out && JSON.parse(out).result;
-}
 
 function sleep(ms: number) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-function shellQuote(s: string) {
-  return `'${s.replaceAll("'", `'"'"'`)}'`;
+if (!args.slug) problems.push("--slug is required");
+if (!args.task) problems.push("--task is required");
+if (!AGENTS.includes(args.agent)) problems.push(`unknown agent "${args.agent}"; expected one of: ${AGENTS.join(", ")}`);
+checkHerdr();
+failIfProblems("new-space");
+
+const machine = args.machine ? resolveMachine(args.machine) : undefined;
+failIfProblems("new-space");
+
+const { herdr, sh, trySh } = on(machine);
+
+function findRepo(): string | undefined {
+  if (args.repo) return args.repo;
+  if (machine) {
+    const repo = herdr("workspace", "list").workspaces.find(
+      (w: { worktree?: { is_linked_worktree: boolean } }) => w.worktree && !w.worktree.is_linked_worktree,
+    )?.worktree.checkout_path;
+    if (!repo) problems.push(`no Herdr workspace on ${machine.label} is a main git checkout; pass --repo <path>`);
+    return repo;
+  }
+  const commonDir = trySh("git", "rev-parse", "--path-format=absolute", "--git-common-dir");
+  if (!commonDir) problems.push(`${process.cwd()} is not inside a git repo; cd into one or pass --repo <path>`);
+  return commonDir && dirname(commonDir);
 }
 
-const target = args.machine
-  ? JSON.parse(run("herdr", ["machine", "list", "--json"])).find(
-      (m: { label: string }) => m.label === args.machine,
-    ).target
-  : undefined;
-
-function git(...argv: string[]) {
-  return target ? run("ssh", [target, ["git", ...argv].map(shellQuote).join(" ")]) : run("git", argv);
+const repo = findRepo();
+if (repo) {
+  const where = machine ? `${machine.label}:${repo}` : repo;
+  if (!trySh("git", "-C", repo, "remote", "get-url", "origin")) problems.push(`${where} has no "origin" remote`);
+  else if (!trySh("git", "-C", repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")) {
+    problems.push(`${where} has no origin/HEAD: run \`git -C ${repo} remote set-head origin --auto\``);
+  }
 }
+if (!machine && !tryRun("which", [args.agent])) problems.push(`agent CLI "${args.agent}" not on PATH`);
+failIfProblems("new-space");
 
-const repo =
-  args.repo ??
-  (target
-    ? herdr("workspace", "list").workspaces.find(
-        (w: { worktree?: { is_linked_worktree: boolean } }) => w.worktree && !w.worktree.is_linked_worktree,
-      ).worktree.checkout_path
-    : dirname(run("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"])));
-
-git("-C", repo, "fetch", "origin");
-const base = git("-C", repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").replace(/^origin\//, "");
+sh("git", "-C", repo!, "fetch", "origin");
+const base = sh("git", "-C", repo!, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").replace(/^origin\//, "");
 
 function createWorktree() {
   for (let n = 1; ; n++) {
-    const slug = n === 1 ? args.slug! : `${args.slug}-${n}`;
-    const path = `${dirname(repo)}/${slug}`;
+    const slug = n === 1 ? args.slug : `${args.slug}-${n}`;
+    const path = `${dirname(repo!)}/${slug}`;
     try {
-      return { slug, path, ...herdr("worktree", "create", "--cwd", repo, "--branch", slug, "--base", base, "--path", path, "--label", slug, "--no-focus") };
+      return { slug, path, ...herdr("worktree", "create", "--cwd", repo!, "--branch", slug, "--base", base, "--path", path, "--label", slug, "--no-focus") };
     } catch (err) {
       if (n === 5) throw err;
     }
@@ -75,7 +78,7 @@ const bottomPane: string = herdr(
   "pane", "split", rootPane, "--direction", "down", "--ratio", "0.9", "--cwd", created.path, "--no-focus",
 ).pane.pane_id;
 
-herdr("pane", "run", rootPane, args.agent!);
+herdr("pane", "run", rootPane, args.agent);
 for (let attempt = 1; ; attempt++) {
   try {
     herdr("agent", "wait", rootPane, "--until", "idle", "--timeout", "60000");
@@ -96,5 +99,5 @@ const setup = [
 herdr("pane", "run", bottomPane, setup);
 
 console.log(
-  `${args.machine ?? "Local"} · workspace ${created.slug} (${workspaceId}) · ${created.path} · branch ${created.slug} · ${args.agent}`,
+  `${machine?.label ?? "Local"} · workspace ${created.slug} (${workspaceId}) · ${created.path} · branch ${created.slug} · ${args.agent}`,
 );
