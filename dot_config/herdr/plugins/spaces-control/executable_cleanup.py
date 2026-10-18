@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from spaces import BOLD, DIM, GREEN, HERDR, RESET, STATE_DIR, YELLOW, cli, workspaces
@@ -30,15 +31,41 @@ def repo_context(repo):
     return default, {(p["headRefName"], p["headRefOid"]) for p in json.loads(prs or "[]")}
 
 
+def modified_at(path, status):
+    """Newest of the last HEAD move (commit, checkout, reset) and the mtimes of uncommitted files."""
+    gitdir = git(path, "rev-parse", "--absolute-git-dir").stdout.strip()
+    times = [os.path.getmtime(os.path.join(gitdir, "logs", "HEAD"))]
+    entries = iter(status.split("\0"))
+    for entry in entries:
+        if not entry:
+            continue
+        if entry[0] in "RC":
+            next(entries)
+        file = os.path.join(path, entry[3:])
+        if os.path.lexists(file):
+            times.append(os.lstat(file).st_mtime)
+    return max(times)
+
+
+def age(ts):
+    secs = time.time() - ts
+    for unit, size in (("d", 86400), ("h", 3600), ("m", 60)):
+        if secs >= size:
+            return f"{int(secs // size)}{unit} ago"
+    return "just now"
+
+
 def classify(wt, repo, default, prs, spaces, current_ws):
     path, branch = wt["path"], wt.get("branch", "")
     ws = spaces.get(wt.get("open_workspace_id"))
     row = {"path": path, "repo": repo, "branch": branch or "detached", "workspace_id": ws and ws["workspace_id"],
-           "merged": False, "dirty": False}
+           "merged": False, "dirty": False, "modified_at": None}
     if wt["is_prunable"]:
         return {**row, "reason": "missing dir", "selected": True}
     head = git(path, "rev-parse", "HEAD").stdout.strip()
-    row["dirty"] = bool(git(path, "status", "--porcelain").stdout)
+    status = git(path, "status", "--porcelain", "-z").stdout
+    row["dirty"] = bool(status)
+    row["modified_at"] = modified_at(path, status)
     via_pr = (branch, head) in prs
     via_main = git(path, "merge-base", "--is-ancestor", head, default).returncode == 0
     row["merged"] = via_pr or via_main
@@ -93,8 +120,9 @@ def list_rows():
         box = f"{GREEN}[x]{RESET}" if r["selected"] else f"{DIM}[ ]{RESET}"
         space = "●" if r["workspace_id"] else " "
         color = YELLOW if risky(r) else DIM
+        modified = age(r["modified_at"]) if r["modified_at"] else "-"
         print(f"{r['path']}\t{box} {space} {BOLD}{os.path.basename(r['path']):<{width}}{RESET}  "
-              f"{color}{r['reason']:<22}{RESET} {DIM}{r['branch']}{RESET}")
+              f"{modified:>9}  {color}{r['reason']:<22}{RESET} {DIM}{r['branch']}{RESET}")
 
 
 def toggle(path):
