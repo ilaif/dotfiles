@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 
-export type Machine = { label: string; target: string; enabled: boolean };
+export type Machine = { id: string; label: string; target: string; session: string; enabled: boolean };
 
 export function run(cmd: string, argv: string[]): string {
   return execFileSync(cmd, argv, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -52,6 +52,17 @@ export function resolveMachine(where: string): Machine | undefined {
   if (status.status !== "reachable") {
     problems.push(
       `machine ${machine.label} is ${status.status}${status.error ? ` (${status.error})` : ""}: the user must run \`! herdr machine reconnect ${machine.label}\``,
+    );
+    return machine;
+  }
+  // `machine status` only proves ssh works; the saved session must also have a running server.
+  if (!tryRun("herdr", ["--machine", machine.label, "workspace", "list"])) {
+    const sessions = tryRun("ssh", [machine.target, "ls ~/.config/herdr/sessions"])?.split("\n").filter(Boolean) ?? [];
+    const fix = sessions.length === 1
+      ? `run \`herdr machine remove ${machine.id} && herdr machine add ${machine.target} --label ${machine.label} --remote-session ${sessions[0]}\``
+      : `re-save it with \`herdr machine add ${machine.target} --label ${machine.label} --remote-session <session>\` after \`herdr machine remove ${machine.id}\``;
+    problems.push(
+      `machine ${machine.label} is saved for Herdr session "${machine.session}", but no server answers it (running sessions: ${sessions.join(", ") || "none"}): ${fix}`,
     );
   }
   return machine;
