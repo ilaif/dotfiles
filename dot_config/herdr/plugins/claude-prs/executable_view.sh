@@ -44,4 +44,4 @@ wait
 picked="$(cat "$tmp"/* \
   | fzf --ansi --delimiter '\t' --with-nth 2.. --tabstop 2 --reverse --no-sort \
         --header 'enter: open PR · esc: close' --prompt 'PRs › ' || true)"
-[[ -n "$picked" ]] && open "${picked%%$'\t'*}"
+[[ -n "$picked" ]] && "${BROWSER:-open}" "${picked%%$'\t'*}"
