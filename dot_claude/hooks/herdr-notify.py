@@ -11,6 +11,8 @@ import subprocess
 import sys
 
 SOCKET = os.path.expanduser("~/.config/herdr/herdr.sock")
+NOTIFIER = os.path.expanduser("~/Applications/ClaudeNotifier.app/Contents/MacOS/terminal-notifier")
+LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "act-logo.png")
 
 
 def call(method, params):
@@ -21,7 +23,7 @@ def call(method, params):
     while not data.endswith(b"\n"):
         data += client.recv(65536)
     client.close()
-    return json.loads(data)["result"]
+    return json.loads(data)["result"]  # no-smell: stdlib-only hook script, no pydantic
 
 
 def focus(pane_id):
@@ -43,10 +45,11 @@ def notify():
     message = hook.get("message") or "Finished"
     subprocess.Popen(
         [
-            "terminal-notifier",
+            NOTIFIER,
             "-title", f"Claude · {workspace['label']}",
             "-message", message,
             "-group", f"herdr-{pane_id}",
+            "-contentImage", LOGO,
             "-execute", f"{sys.executable} {os.path.abspath(__file__)} focus '{pane_id}'",
         ],
         stdout=subprocess.DEVNULL,

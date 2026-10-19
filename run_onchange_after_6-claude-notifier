@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+
+echox() {
+  printf "[\033[1;32mclaude-notifier\033[0m] %s\n" "$1"
+}
+
+# terminal-notifier copy branded as Claude, used by ~/.claude/hooks/herdr-notify.py.
+# macOS takes a notification's left icon from the sending app bundle, so the copy gets
+# its own bundle id and Claude.app's icon. First notification prompts for permission.
+SRC="$(brew --prefix terminal-notifier)/terminal-notifier.app"
+DST="$HOME/Applications/ClaudeNotifier.app"
+ICON=/Applications/Claude.app/Contents/Resources/electron.icns
+
+echox "Building $DST"
+mkdir -p "$HOME/Applications"
+rm -rf "$DST"
+cp -R "$SRC" "$DST"
+cp "$ICON" "$DST/Contents/Resources/Claude.icns"
+/usr/libexec/PlistBuddy \
+  -c 'Set :CFBundleIdentifier dev.ilai.claude-notifier' \
+  -c 'Set :CFBundleIconFile Claude' \
+  -c 'Set :CFBundleName Claude' \
+  -c 'Add :CFBundleDisplayName string Claude' \
+  "$DST/Contents/Info.plist"
+codesign --force --deep --sign - "$DST" 2>/dev/null
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DST"
