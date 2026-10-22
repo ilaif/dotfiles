@@ -1,4 +1,6 @@
-// Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--machine <where>] [--repo <path>]
+// Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--model <name>] [--machine <where>] [--repo <path>]
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { checkHerdr, failIfProblems, on, problems, resolveMachine, tryRun } from "./herdr-lib.ts";
@@ -10,6 +12,7 @@ const { values: args } = parseArgs({
     slug: { type: "string", default: "" },
     task: { type: "string", default: "" },
     agent: { type: "string", default: "claude" },
+    model: { type: "string" },
     machine: { type: "string" },
     repo: { type: "string" },
   },
@@ -24,6 +27,18 @@ if (!args.task) problems.push("--task is required");
 if (!AGENTS.includes(args.agent)) problems.push(`unknown agent "${args.agent}"; expected one of: ${AGENTS.join(", ")}`);
 checkHerdr();
 failIfProblems("new-space");
+
+// A short name picks the first Claude modelPicker option whose id or label contains it; anything else passes through.
+function resolveModel(name: string): string {
+  if (args.agent !== "claude") return name;
+  const settings = JSON.parse(readFileSync(`${homedir()}/.claude/settings.json`, "utf8")); // no-smell: preserve the existing local parser in this sync; no new runtime dependency.
+  const options: { model: string; label: string }[] = settings.modelPicker?.options ?? [];
+  const query = name.toLowerCase();
+  return options.find((o) => `${o.model} ${o.label}`.toLowerCase().includes(query))?.model ?? name;
+}
+
+const model = args.model && resolveModel(args.model);
+const agentCommand = model ? `${args.agent} --model ${model}` : args.agent;
 
 const machine = args.machine ? resolveMachine(args.machine) : undefined;
 failIfProblems("new-space");
@@ -78,7 +93,7 @@ const bottomPane: string = herdr(
   "pane", "split", rootPane, "--direction", "down", "--ratio", "0.9", "--cwd", created.path, "--no-focus",
 ).pane.pane_id;
 
-herdr("pane", "run", rootPane, args.agent);
+herdr("pane", "run", rootPane, agentCommand);
 for (let attempt = 1; ; attempt++) {
   try {
     herdr("agent", "wait", rootPane, "--until", "idle", "--timeout", "60000");
@@ -99,5 +114,5 @@ const setup = [
 herdr("pane", "run", bottomPane, setup);
 
 console.log(
-  `${machine?.label ?? "Local"} · workspace ${created.slug} (${workspaceId}) · ${created.path} · branch ${created.slug} · ${args.agent}`,
+  `${machine?.label ?? "Local"} · workspace ${created.slug} (${workspaceId}) · ${created.path} · branch ${created.slug} · ${agentCommand}`,
 );

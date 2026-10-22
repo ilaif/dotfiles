@@ -95,7 +95,7 @@ def scan(current_ws):
                 if wt["is_linked_worktree"]:
                     jobs.append(pool.submit(classify, wt, repo, *contexts[repo], spaces, current_ws))
         rows = [job.result() for job in jobs]
-    save(sorted(rows, key=lambda r: (not r["selected"], r["path"])))
+    save(sorted(rows, key=lambda r: (not r["selected"], not r["merged"], -(r["modified_at"] or 0))))
 
 
 def load():

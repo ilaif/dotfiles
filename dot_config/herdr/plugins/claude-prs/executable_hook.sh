@@ -11,7 +11,10 @@ SOURCE="ilai.claude-prs"
 PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 SLOTS=8
 PR_URL='https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[0-9]+'
-PR_COMMAND='gh pr create|gh stack|git push'
+PR_COMMAND='gh pr create|gh stack|git push|gh api'
+# A REST call that creates or edits a PR: `gh api` on repos/<owner>/<repo>/pulls[/<n>] with a write flag.
+API_PR_PATH='repos/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pulls(/[0-9]+)?([^A-Za-z0-9_/]|$)'
+API_WRITE_FLAG=' (-f|-F|--field|--raw-field|--input|-X *(POST|PATCH)|--method *(POST|PATCH))[ =]'
 
 if [ "${1:-}" != "--run" ]; then
   input="$(cat)"
@@ -104,8 +107,14 @@ urls=""
 case "$event" in
   SessionStart) urls="$(branch_pr_url "$cwd")" ;;
   PostToolUse)
-    urls="$(field '"\(.tool_response.stdout // "")\n\(.tool_response.stderr // "")"' | grep -oE "$PR_URL" || true)"
     command="$(field .tool_input.command)"
+    output_urls="$(field '"\(.tool_response.stdout // "")\n\(.tool_response.stderr // "")"' | grep -oE "$PR_URL" || true)"
+    printf '%s' "$command" | grep -qE 'gh pr create|gh stack|git push' && urls="$output_urls"
+    api_writes="$(printf '%s\n' "$command" | grep -E "gh api .*$API_PR_PATH" | grep -E "$API_WRITE_FLAG" || true)"
+    # A create returns the new PR's URL only in its output; an edit names the PR in its path.
+    [ -z "$api_writes" ] || urls="$urls
+$output_urls
+$(printf '%s' "$api_writes" | grep -oE "$API_PR_PATH" | sed -nE 's#^repos/([^/]+)/([^/]+)/pulls/([0-9]+).*#https://github.com/\1/\2/pull/\3#p')"
     case "$command" in
       *"git push"*) urls="$urls
 $(branch_pr_url "$(push_dir "$command")")" ;;

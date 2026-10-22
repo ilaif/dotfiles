@@ -11,7 +11,10 @@ The argument is the task. Parse and slugify in your head, then make **one** tool
 
 A leading `@<where>`, or naming a remote workspace in words ("in workspace abc-123", "on abc-123"), picks that remote machine; otherwise the space is local. Then an agent name followed by `:` is an override (`claude`, `codex`, `pi`, `opencode`, `omp`); anything else is all task. Default agent: `claude`.
 
+A model named before the task, such as "opus model:" or "on opus", goes to `--model`, not the task. Pass the short name as said (`opus`); for `claude` the script resolves it against `modelPicker` in `~/.claude/settings.json`, and any other name passes through to the agent's `--model`. No model named: omit the flag.
+
 `codex: fix the flaky auth test` → local, agent `codex`, task `fix the flaky auth test`.
+`opus model: fix the flaky auth test` → local, agent `claude`, model `opus`, task `fix the flaky auth test`.
 `@abc-123 claude: fix the flaky auth test` or `open a new space in workspace abc-123 to fix the flaky auth test` → remote machine `abc-123`.
 
 ## 2. Slugify
@@ -21,7 +24,7 @@ Slugify the task into a branch name, leading with the ticket ID if the task name
 ## 3. Run the script
 
 ```bash
-node ~/.claude/skills/new-space/new-space.ts --slug <slug> --agent <agent> --task "<task>" [--machine <where>]
+node ~/.claude/skills/new-space/new-space.ts --slug <slug> --agent <agent> --task "<task>" [--model <name>] [--machine <where>]
 ```
 
 Pass `<where>` as the user wrote it; the script matches it against each saved Herdr machine's label, the label after `/`, or the SSH target's last dot-separated part.
@@ -36,4 +39,4 @@ Pass `<where>` as the user wrote it; the script matches it against each saved He
 
 ## 4. Report
 
-Relay the script's one-line output (machine, workspace label and ID, worktree path, branch, agent). Then **fire and forget**: treat the spawned agent as out of scope for the rest of the session. Inspect it only if the user asks.
+Relay the script's one-line output (machine, workspace label and ID, worktree path, branch, agent command with its model). Then **fire and forget**: treat the spawned agent as out of scope for the rest of the session. Inspect it only if the user asks.

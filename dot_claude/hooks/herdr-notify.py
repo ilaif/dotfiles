@@ -6,13 +6,14 @@ Usage: herdr-notify.py            (hook mode, reads hook JSON on stdin)
 """
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
 
 SOCKET = os.path.expanduser("~/.config/herdr/herdr.sock")
 NOTIFIER = os.path.expanduser("~/Applications/ClaudeNotifier.app/Contents/MacOS/terminal-notifier")
-LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "act-logo.png")
+HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def call(method, params):
@@ -29,6 +30,16 @@ def call(method, params):
 def focus(pane_id):
     call("pane.focus", {"pane_id": pane_id})
     subprocess.run(["open", "-b", "com.mitchellh.ghostty"])
+
+
+def state(hook):
+    if hook["hook_event_name"] == "Notification":
+        return "blocked"
+    lines = [re.sub(r"(\*\*|__|`)", "", raw).strip() for raw in (hook.get("last_assistant_message") or "").splitlines()]
+    step = next((line for line in reversed(lines) if re.match(r"^next\b\s*:", line, re.I)), None)
+    if step and not re.match(r"next\b\s*:\s*(nothing\b|no action\b|i['’]ll\b|i will\b)", step, re.I):
+        return "next"
+    return "finished"
 
 
 def notify():
@@ -49,7 +60,7 @@ def notify():
             "-title", f"Claude · {workspace['label']}",
             "-message", message,
             "-group", f"herdr-{pane_id}",
-            "-contentImage", LOGO,
+            "-contentImage", os.path.join(HOOKS_DIR, f"herdr-{state(hook)}.png"),
             "-execute", f"{sys.executable} {os.path.abspath(__file__)} focus '{pane_id}'",
         ],
         stdout=subprocess.DEVNULL,

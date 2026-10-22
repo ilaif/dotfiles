@@ -12,12 +12,13 @@ jq -j -s --argjson hooks '[
   ["Stop", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
   ["SessionEnd", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
   ["SessionStart", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
-  ["PostToolUse", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"]
+  ["PostToolUse", "sh '\''{{ $plugins }}/claude-prs/hook.sh'\''"],
+  ["PostToolUse", "bash ~/.claude/skills/no-smell/scripts/hook.sh", "Edit|Write|MultiEdit", 30]
 ]' '
   reduce .[] as $x ({}; . * $x)
-  | reduce $hooks[] as [$e, $cmd] (.;
+  | reduce $hooks[] as [$e, $cmd, $matcher, $timeout] (.;
       if any(.hooks[$e][]?.hooks[]; .command == $cmd) then .
-      else .hooks[$e] += [{hooks: [{type: "command", command: $cmd, timeout: 10}]}] end)
+      else .hooks[$e] += [{matcher: ($matcher // "*"), hooks: [{type: "command", command: $cmd, timeout: ($timeout // 10)}]}] end)
 ' - <(cat <<'EOF'
 {{ include "claude-settings.json" }}
 EOF

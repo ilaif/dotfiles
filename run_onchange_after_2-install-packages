@@ -32,7 +32,6 @@ gh extension install mislav/gh-branch
 echox "Install global npm packages"
 export PNPM_HOME="$HOME/.local/share/pnpm"
 export PATH="$PNPM_HOME/bin:$PATH"
-pnpm add -g @githubnext/github-copilot-cli
 pnpm add -g @escape.tech/mookme
 pnpm add -g ccstatusline
 

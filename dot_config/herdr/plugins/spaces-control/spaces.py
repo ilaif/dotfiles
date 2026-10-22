@@ -13,7 +13,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-PARK = "🗄 "
+PARK = "💤 "
 STATE_DIR = os.path.expanduser("~/.local/state/herdr-spaces-control")
 STATE = os.path.join(STATE_DIR, "hidden.json")
 MESSAGE = os.path.join(STATE_DIR, "message")
