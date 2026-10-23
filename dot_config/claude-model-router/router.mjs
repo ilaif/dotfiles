@@ -59,7 +59,10 @@ function tunnelAgent(route) {
 
 const routes = config.routes.map((route) => ({ ...route, agent: tunnelAgent(route), url: new URL(route.origin) }));
 
-function forward(req, res, body, target, agent) {
+// Claude Code sends "model" as the body's first key, so the route is known from the first bytes.
+const MODEL = /^\s*\{\s*"model"\s*:\s*"([^"]*)"/;
+
+function forward(req, res, head, target, agent) {
   const headers = { ...req.headers, host: target.host };
   const upstream = https.request(
     { host: target.hostname, port: Number(target.port || 443), method: req.method, path: req.url, headers, agent },
@@ -72,21 +75,30 @@ function forward(req, res, body, target, agent) {
     if (!res.headersSent) res.writeHead(502, { "content-type": "application/json" });
     res.end(JSON.stringify({ type: "error", error: { type: "api_error", message: `claude-model-router: ${err.message}` } }));
   });
-  upstream.end(body);
+  if (req.readableEnded) return upstream.end(head);
+  upstream.write(head);
+  req.pipe(upstream);
 }
 
 const server = http.createServer((req, res) => {
-  const chunks = [];
-  req.on("data", (c) => chunks.push(c));
-  req.on("end", () => {
-    const body = Buffer.concat(chunks);
-    const model = req.headers["content-type"]?.startsWith("application/json") && body.length
-      ? JSON.parse(body.toString("utf8")).model
-      : undefined;
-    const route = typeof model === "string" && routes.find((r) => model.startsWith(r.modelPrefix));
-    if (route) forward(req, res, body, route.url, route.agent);
-    else forward(req, res, body, anthropic, directAgent);
-  });
+  let head = Buffer.alloc(0);
+  const route = () => {
+    const model = MODEL.exec(head.toString("latin1"))?.[1];
+    const match = model && routes.find((r) => model.startsWith(r.modelPrefix));
+    req.off("data", onData);
+    req.off("end", route);
+    if (match) forward(req, res, head, match.url, match.agent);
+    else forward(req, res, head, anthropic, directAgent);
+  };
+  const onData = (chunk) => {
+    head = Buffer.concat([head, chunk]);
+    if (head.length >= 256 || MODEL.test(head.toString("latin1"))) {
+      req.pause();
+      route();
+    }
+  };
+  req.on("data", onData);
+  req.on("end", route);
 });
 
 await Promise.all(routes.map(refreshToken));
