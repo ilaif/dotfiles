@@ -5,16 +5,22 @@ description: Create a git worktree, open it as a Herdr workspace, and fire-and-f
 
 # new-space
 
-The argument is the task. Parse and slugify in your head, then make **one** tool call: the script. Don't check `HERDR_ENV`, list machines, or inspect the repo first — the script's preflight does all of that.
+The argument is the task. Parse and slugify in your head, then make **one** tool call: the script (two when a model is named, see below). Don't check `HERDR_ENV`, list machines, or inspect the repo first — the script's preflight does all of that.
 
 ## 1. Parse
 
 A leading `@<where>`, or naming a remote workspace in words ("in workspace abc-123", "on abc-123"), picks that remote machine; otherwise the space is local. Then an agent name followed by `:` is an override (`claude`, `codex`, `pi`, `opencode`, `omp`); anything else is all task. Default agent: `claude`.
 
-A model named before the task, such as "opus model:" or "on opus", goes to `--model`, not the task. Pass the short name as said (`opus`); for `claude` the script resolves it against `modelPicker` in `~/.claude/settings.json`, and any other name passes through to the agent's `--model`. No model named: omit the flag.
+A model named before the task, such as "opus model:" or "with the fast sonnet", goes to `--model`, not the task. First list what the agent accepts:
+
+```bash
+node ~/.claude/skills/new-space/new-space.ts --list-models --agent <agent> [--machine <where>]
+```
+
+It prints one `<id>\t<label>` line per model. Pick the line that best matches what the user said and pass its exact `<id>` to `--model`. Several plausible matches: list them and ask. None: relay the list and stop. No model named: skip the listing and omit the flag.
 
 `codex: fix the flaky auth test` → local, agent `codex`, task `fix the flaky auth test`.
-`opus model: fix the flaky auth test` → local, agent `claude`, model `opus`, task `fix the flaky auth test`.
+`opus model: fix the flaky auth test` → local, agent `claude`, `--list-models`, then model `opus`, task `fix the flaky auth test`.
 `@abc-123 claude: fix the flaky auth test` or `open a new space in workspace abc-123 to fix the flaky auth test` → remote machine `abc-123`.
 
 ## 2. Slugify
@@ -24,7 +30,7 @@ Slugify the task into a branch name, leading with the ticket ID if the task name
 ## 3. Run the script
 
 ```bash
-node ~/.claude/skills/new-space/new-space.ts --slug <slug> --agent <agent> --task "<task>" [--model <name>] [--machine <where>]
+node ~/.claude/skills/new-space/new-space.ts --slug <slug> --agent <agent> --task "<task>" [--model <id>] [--machine <where>]
 ```
 
 Pass `<where>` as the user wrote it; the script matches it against each saved Herdr machine's label, the label after `/`, or the SSH target's last dot-separated part.

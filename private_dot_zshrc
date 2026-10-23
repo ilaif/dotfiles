@@ -66,6 +66,18 @@ plugins=(
 
 source "$ZSH/oh-my-zsh.sh"
 
+# Source a tool's generated init script from a cache, regenerated when the tool's binary changes.
+cached_init() {
+  local name=$1; shift
+  local bin=${commands[$1]} f=$HOME/.cache/zsh-init/$name.zsh
+  [[ -n $bin ]] || return
+  if [[ ! -s $f || $bin -nt $f ]]; then
+    mkdir -p ${f:h}
+    "$@" >| $f
+  fi
+  source $f
+}
+
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
@@ -75,15 +87,13 @@ esac
 # pnpm end
 
 
-eval "$(starship init zsh)"
-eval "$(zoxide init zsh)"
-eval "$(direnv hook zsh)"
+cached_init starship starship init zsh --print-full-init
+cached_init zoxide zoxide init zsh
+cached_init direnv direnv hook zsh
 source "$HOME/.oh-my-zsh/custom/plugins/zsh-histdb-fzf/fzf-histdb.zsh"
 bindkey '^R' histdb-fzf-widget
 source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
 source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-eval "$(github-copilot-cli alias -- "$0")"
-[ -f /usr/local/bin/kubectl ] && source <(kubectl completion zsh)
 [ -f "$HOME/.aliases" ] && source $HOME/.aliases
 [ -f "$HOME/.hooks" ] && source $HOME/.hooks
 [ -f "$HOME/.secrets/env" ] && source $HOME/.secrets/env
@@ -95,7 +105,7 @@ if [[ "$PROFILING_ENABLED" == "1" ]]; then
 fi
 ### FILE END ###
 
-[ -f "$(which tilt)" ] && source <(tilt completion zsh)
+cached_init tilt tilt completion zsh
 
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
@@ -104,8 +114,8 @@ export EDITOR='nvim'
 # Added by codebase-memory-mcp install
 export PATH="$HOME/.local/bin:$PATH"
 
-eval "$(/opt/homebrew/bin/brew shellenv)"
-eval "$(mise activate zsh)"
+cached_init brew brew shellenv
+cached_init mise mise activate zsh
 # BEGIN_AWS_SSO_CLI
 
 # AWS SSO requires `bashcompinit` which needs to be enabled once and

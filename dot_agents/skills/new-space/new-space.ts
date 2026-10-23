@@ -1,6 +1,5 @@
-// Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--model <name>] [--machine <where>] [--repo <path>]
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
+// Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--model <id>] [--machine <where>] [--repo <path>]
+//        node new-space.ts --list-models [--agent claude] [--machine <where>]
 import { dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { checkHerdr, failIfProblems, on, problems, resolveMachine, tryRun } from "./herdr-lib.ts";
@@ -15,6 +14,7 @@ const { values: args } = parseArgs({
     model: { type: "string" },
     machine: { type: "string" },
     repo: { type: "string" },
+    "list-models": { type: "boolean", default: false },
   },
 });
 
@@ -22,28 +22,37 @@ function sleep(ms: number) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-if (!args.slug) problems.push("--slug is required");
-if (!args.task) problems.push("--task is required");
+if (!args["list-models"]) {
+  if (!args.slug) problems.push("--slug is required");
+  if (!args.task) problems.push("--task is required");
+}
 if (!AGENTS.includes(args.agent)) problems.push(`unknown agent "${args.agent}"; expected one of: ${AGENTS.join(", ")}`);
 checkHerdr();
 failIfProblems("new-space");
 
-// A short name picks the first Claude modelPicker option whose id or label contains it; anything else passes through.
-function resolveModel(name: string): string {
-  if (args.agent !== "claude") return name;
-  const settings = JSON.parse(readFileSync(`${homedir()}/.claude/settings.json`, "utf8")); // no-smell: preserve the existing local parser in this sync; no new runtime dependency.
-  const options: { model: string; label: string }[] = settings.modelPicker?.options ?? [];
-  const query = name.toLowerCase();
-  return options.find((o) => `${o.model} ${o.label}`.toLowerCase().includes(query))?.model ?? name;
-}
-
-const model = args.model && resolveModel(args.model);
-const agentCommand = model ? `${args.agent} --model ${model}` : args.agent;
+const agentCommand = args.model ? `${args.agent} --model ${args.model}` : args.agent;
 
 const machine = args.machine ? resolveMachine(args.machine) : undefined;
 failIfProblems("new-space");
 
 const { herdr, sh, trySh } = on(machine);
+
+// One "<id>\t<label>" line per model the agent accepts for --model.
+function listModels(): string {
+  if (args.agent === "claude") {
+    const aliases = ["fable", "opus", "opus[1m]", "sonnet", "haiku"].map((a) => `${a}\tlatest ${a}`).join("\n");
+    const picker = sh("sh", "-c", `jq -r '.modelPicker.options[]? | "\\(.model)\\t\\(.label)"' "$HOME/.claude/settings.json"`);
+    return [aliases, picker].filter(Boolean).join("\n");
+  }
+  if (args.agent === "codex") return sh("sh", "-c", `codex debug models | jq -r '.models[] | "\\(.slug)\\t\\(.display_name)"'`);
+  if (args.agent === "opencode") return sh("opencode", "models");
+  return `${args.agent} has no model list; pass the name the user gave`;
+}
+
+if (args["list-models"]) {
+  console.log(listModels());
+  process.exit(0);
+}
 
 function findRepo(): string | undefined {
   if (args.repo) return args.repo;
