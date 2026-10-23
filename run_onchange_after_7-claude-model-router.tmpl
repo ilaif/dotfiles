@@ -1,0 +1,10 @@
+#!/bin/bash
+{{- if stat (joinPath .chezmoi.homeDir ".config/claude-model-router/config.json") }}
+# Restart claude-model-router when its code or LaunchAgent changes.
+# router.mjs {{ include "dot_config/claude-model-router/router.mjs" | sha256sum }}
+# plist {{ include "private_Library/LaunchAgents/dev.claude-model-router.plist.tmpl" | sha256sum }}
+set -e
+plist="$HOME/Library/LaunchAgents/dev.claude-model-router.plist"
+launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$plist"
+{{- end }}

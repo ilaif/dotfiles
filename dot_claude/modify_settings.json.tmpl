@@ -2,7 +2,10 @@
 # Deep-merge the tracked keys from claude-settings.json over the live file.
 # Keys Claude Code or other tools write (hooks, autoMode, ...) are kept as-is.
 # Our hooks are appended per event when missing, since `*` would replace those arrays.
+# An untracked ~/.claude/settings.private.json (machine- or work-only keys, no hooks) is merged last.
 {{- $plugins := joinPath .chezmoi.homeDir ".config/herdr/plugins" }}
+private="$HOME/.claude/settings.private.json"
+[ -f "$private" ] || private=/dev/null
 jq -j -s --argjson hooks '[
   ["Stop", "python3 ~/.claude/hooks/herdr-notify.py"],
   ["Notification", "python3 ~/.claude/hooks/herdr-notify.py"],
@@ -22,4 +25,4 @@ jq -j -s --argjson hooks '[
 ' - <(cat <<'EOF'
 {{ include "claude-settings.json" }}
 EOF
-)
+) "$private"
