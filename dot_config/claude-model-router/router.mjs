@@ -31,6 +31,9 @@ function tunnelAgent(route) {
   const proxy = new URL(route.proxy ?? route.origin);
   const agent = new https.Agent({ keepAlive: true });
   agent.createConnection = (_options, callback) => {
+    route.ready.then(() => connect(callback), callback);
+  };
+  const connect = (callback) => {
     const outer = tls.connect({ host: proxy.hostname, port: Number(proxy.port || 443), servername: proxy.hostname });
     outer.once("error", callback);
     outer.once("secureConnect", () => {
@@ -57,7 +60,13 @@ function tunnelAgent(route) {
   return agent;
 }
 
-const routes = config.routes.map((route) => ({ ...route, agent: tunnelAgent(route), url: new URL(route.origin) }));
+const routes = config.routes.map((route) => {
+  const r = { ...route, url: new URL(route.origin) };
+  r.agent = tunnelAgent(r);
+  r.ready = refreshToken(r);
+  r.ready.catch((err) => console.error(err.message));
+  return r;
+});
 
 // Claude Code sends "model" as the body's first key, so the route is known from the first bytes.
 const MODEL = /^\s*\{\s*"model"\s*:\s*"([^"]*)"/;
@@ -101,6 +110,5 @@ const server = http.createServer((req, res) => {
   req.on("end", route);
 });
 
-await Promise.all(routes.map(refreshToken));
 for (const route of routes) setInterval(() => refreshToken(route).catch((err) => console.error(err.message)), (route.refreshSeconds ?? 240) * 1000);
 server.listen(config.port ?? 8787, "127.0.0.1", () => console.log(`claude-model-router on 127.0.0.1:${config.port ?? 8787}`));
