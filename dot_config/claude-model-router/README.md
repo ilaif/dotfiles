@@ -40,4 +40,6 @@ A local `ANTHROPIC_BASE_URL` for Claude Code that adds extra models without slow
 
 3. `chezmoi apply`. The LaunchAgent is installed and started only when `config.json` exists.
 
-Logs: `~/Library/Logs/claude-model-router.log`. Restart: `launchctl kickstart -k gui/$(id -u)/dev.claude-model-router`.
+## Operate
+
+`claude-router status|restart|start|stop|logs|off|on`. `off` points new Claude sessions straight at Anthropic (for when the router is down); `on` points them back.

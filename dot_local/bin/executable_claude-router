@@ -1,0 +1,31 @@
+#!/bin/bash
+# Operate claude-model-router (see ~/.config/claude-model-router/README.md).
+set -euo pipefail
+label=dev.claude-model-router
+svc="gui/$(id -u)/$label"
+plist="$HOME/Library/LaunchAgents/$label.plist"
+log="$HOME/Library/Logs/claude-model-router.log"
+private="$HOME/.claude/settings.private.json"
+settings="$HOME/.claude/settings.json"
+url=http://127.0.0.1:8787
+
+set_base_url() { # $1 = jq filter applied to both settings files
+  for f in "$private" "$settings"; do
+    jq --indent 2 "$1" "$f" >"$f.tmp" && cat "$f.tmp" >"$f" && rm "$f.tmp"
+  done
+}
+
+case "${1:-status}" in
+status)
+  launchctl print "$svc" 2>/dev/null | grep -E $'^\t(state|pid|last exit code) =' || echo "not loaded"
+  curl -s -o /dev/null -m 2 -w "health: %{http_code}\n" -I "$url/api/hello" || echo "health: unreachable"
+  echo "claude uses: $(jq -r '.env.ANTHROPIC_BASE_URL // "api.anthropic.com (router off)"' "$settings")"
+  ;;
+restart) launchctl kickstart -k "$svc" && echo restarted ;;
+start) launchctl bootstrap "gui/$(id -u)" "$plist" && echo started ;;
+stop) launchctl bootout "$svc" && echo "stopped (run '$0 off' too, or new claude sessions can't connect)" ;;
+logs) tail -n 50 -f "$log" ;;
+off) set_base_url 'del(.env.ANTHROPIC_BASE_URL)' && echo "new claude sessions go direct to Anthropic; Foundry models unavailable" ;;
+on) set_base_url ".env.ANTHROPIC_BASE_URL = \"$url\"" && echo "new claude sessions use the router" ;;
+*) echo "usage: claude-router [status|restart|start|stop|logs|off|on]" >&2; exit 2 ;;
+esac
