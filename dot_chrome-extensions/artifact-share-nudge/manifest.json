@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Artifact Share Nudge",
   "version": "1.0.0",
-  "description": "Warns when a claude.ai artifact is 'Only you' and offers one-click 'Anyone at <your org>' (Commenter).",
+  "description": "Chromium extension: warns when a claude.ai artifact is 'Only you' and offers one-click 'Anyone at <your org>' (Commenter).",
   "content_scripts": [
     {
       "matches": ["https://claude.ai/artifact/*", "https://claude.ai/code/artifact/*"],
