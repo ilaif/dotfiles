@@ -35,6 +35,12 @@ jq --arg cmd "sh '$plugin/hook.sh'" '
   "$settings" >"$settings.tmp"
 cat "$settings.tmp" >"$settings" && rm "$settings.tmp"
 
+# Permission rules travel with the dotfiles: union claude-settings.json's allow list into the live one.
+jq --slurpfile tracked claude-settings.json '
+  .permissions.allow = (((.permissions.allow // []) + ($tracked[0].permissions.allow // [])) | unique)' \
+  "$settings" >"$settings.tmp"
+cat "$settings.tmp" >"$settings" && rm "$settings.tmp"
+
 statusline="$HOME/.config/ccstatusline/settings.json"
 if [[ ! -e "$statusline" ]]; then
   mkdir -p "${statusline%/*}"

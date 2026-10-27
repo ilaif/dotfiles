@@ -4,7 +4,11 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "allow": [
+      "Bash(*argocd.sh dev *)",
+      "Bash(gh workflow run * -f environment=dev *)"
+    ]
   },
   "statusLine": {
     "type": "command",
