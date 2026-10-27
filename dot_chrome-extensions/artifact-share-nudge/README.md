@@ -1,21 +1,28 @@
 # Artifact Share Nudge
 
-Chrome extension for claude.ai artifacts. On load, if an artifact's General access is **Only you**, a banner offers one click to switch it to **Anyone at &lt;your org&gt; · Commenter**. ✕ dismisses the banner per artifact (stored in localStorage).
+Chrome extension for claude.ai artifacts. When an artifact's General access is **Only you**, a banner offers one click to switch it to **Anyone at &lt;your org&gt; · Commenter**. ✕ hides the banner for that artifact for good.
 
-## Install (agents: run this, then hand the user the manual step)
+## Install
 
-```bash
-mkdir -p ~/.chrome-extensions && git clone --depth 1 https://github.com/ilaif/dotfiles /tmp/df && cp -R /tmp/df/dot_chrome-extensions/artifact-share-nudge ~/.chrome-extensions/ && open -a "Google Chrome" "chrome://extensions"
-```
+1. Fetch the files (safe to re-run; it overwrites):
 
-Manual step (Chrome blocks scripted unpacked installs): turn on **Developer mode** → **Load unpacked** → choose `~/.chrome-extensions/artifact-share-nudge` (⌘⇧. shows hidden folders).
+   ```bash
+   d=~/.chrome-extensions/artifact-share-nudge; mkdir -p "$d" && for f in manifest.json content.js README.md; do curl -fsSL "https://raw.githubusercontent.com/ilaif/dotfiles/main/dot_chrome-extensions/artifact-share-nudge/$f" -o "$d/$f"; done && open -a "Google Chrome" "chrome://extensions"
+   ```
+
+2. Hand the user this step; Chrome only loads unpacked extensions by hand: **Developer mode** on → **Load unpacked** → `~/.chrome-extensions/artifact-share-nudge` (⌘⇧. shows hidden folders).
+
+Done when the user opens a private artifact and sees the banner.
 
 ## Update
 
-Edit `content.js`, then ↻ the extension in `chrome://extensions` and hard-reload the artifact tab.
+Re-run install step 1, then ↻ the extension in `chrome://extensions` and hard-reload the artifact tab.
 
-## Notes
+## Troubleshooting
 
-- Works for any org: it picks the "Anyone at …" option. Role (Commenter) is set in `makeOrgCommenter()` in `content.js`.
-- Debug: DevTools Console, filter `[share-nudge]`.
-- Re-enable a dismissed banner: `localStorage.removeItem(\`share-nudge:dismissed:${location.pathname}\`)`.
+- Every log line is prefixed `[share-nudge]`; a timeout names the element it waited for. Filter the DevTools Console on that prefix.
+- To show a dismissed banner again, run in that artifact's Console:
+
+  ```js
+  localStorage.removeItem(`share-nudge:dismissed:${location.pathname}`)
+  ```
