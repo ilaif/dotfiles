@@ -12,24 +12,50 @@ ln -sfn "$PWD/dot_codex/AGENTS.md" "$HOME/.codex/AGENTS.md"
 # its Toolchain step has installed that Node: on a workspace's first boot Codex gets its plugin on the next one.
 (cd "$PODIUM_WORKSPACE_DIR" && bash "$OLDPWD/run_onchange_after_5-adhd-plugins")
 
-# Claude PRs: the Herdr plugin, its Claude hook and its ccstatusline widget. The source files carry chezmoi's
-# executable_ prefix, so the plugin is installed under its real names. A home without ccstatusline settings starts
-# from Podium's.
-plugin="$HOME/.config/herdr/plugins/claude-prs"
-mkdir -p "$plugin"
-for f in dot_config/herdr/plugins/claude-prs/*; do
-  name="$(basename "$f")"
-  case "$name" in
-  executable_*) install -m 755 "$f" "$plugin/${name#executable_}" ;;
-  *) install -m 644 "$f" "$plugin/$name" ;;
-  esac
+# The terminal-input and spaces-control plugins run python3 from their own directories; without a system one, the
+# newest Python mise has installed becomes the global default.
+if ! python3 --version >/dev/null 2>&1 && command -v mise >/dev/null; then
+  python="$(mise ls --installed python --json 2>/dev/null | jq -r 'last.version // empty')"
+  [[ -n "$python" ]] && mise use -g "python@$python" >/dev/null 2>&1
+fi
+
+# Copies a chezmoi source tree under the files' real names: an executable_ prefix becomes the executable bit.
+install_tree() {
+  local src="$1" dest="$2" f rel name
+  while IFS= read -r -d '' f; do
+    rel="${f#"$src"/}"
+    name="$(basename "$rel")"
+    case "$name" in
+    executable_*) install -D -m 755 "$f" "$dest/$(dirname "$rel")/${name#executable_}" ;;
+    *) install -D -m 644 "$f" "$dest/$rel" ;;
+    esac
+  done < <(find "$src" -type f -print0)
+}
+
+# Own agent skills, beside the ones other tools put in ~/.agents/skills (~/.claude/skills links there).
+for src in dot_agents/skills/*/; do
+  install_tree "${src%/}" "$HOME/.agents/skills/$(basename "$src")"
 done
-herdr plugin link "$plugin" >/dev/null
+[[ -e "$HOME/.claude/skills" ]] || ln -s ../.agents/skills "$HOME/.claude/skills"
+
+# Own Herdr plugins, linked in place. claude-prs and claude-recap feed on Claude hooks; claude-prs
+# also has a ccstatusline widget, and a home without ccstatusline settings starts from Podium's.
+plugins="$HOME/.config/herdr/plugins"
+installed="$(herdr plugin list)"
+for src in dot_config/herdr/plugins/*/; do
+  dest="$plugins/$(basename "$src")"
+  install_tree "${src%/}" "$dest"
+  grep -qF "local:$dest]" <<<"$installed" || herdr plugin link "$dest" >/dev/null
+done
+plugin="$plugins/claude-prs"
 
 settings="$HOME/.claude/settings.json"
 [[ -s "$settings" ]] || echo '{}' >"$settings"
-jq --arg cmd "sh '$plugin/hook.sh'" '
-  reduce ("SessionStart", "PostToolUse", "Stop", "SessionEnd") as $e (.;
+jq --arg prs "sh '$plugins/claude-prs/hook.sh'" --arg recap "bash '$plugins/claude-recap/hook.sh'" '
+  reduce (
+    ($prs | ["SessionStart", .], ["PostToolUse", .], ["Stop", .], ["SessionEnd", .]),
+    ($recap | ["UserPromptSubmit", .], ["Stop", .], ["SessionEnd", .])
+  ) as [$e, $cmd] (.;
     if any(.hooks[$e][]?.hooks[]; .command == $cmd) then .
     else .hooks[$e] += [{hooks: [{type: "command", command: $cmd, timeout: 10}]}] end)' \
   "$settings" >"$settings.tmp"
