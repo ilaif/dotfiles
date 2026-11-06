@@ -30,3 +30,9 @@
 
 [merge]
     conflictStyle = zdiff3
+
+# act-security repos commit as the work identity.
+[includeIf "hasconfig:remote.*.url:https://github.com/act-security/**"]
+	path = ~/.gitconfig-act
+[includeIf "hasconfig:remote.*.url:git@github.com:act-security/**"]
+	path = ~/.gitconfig-act
