@@ -2,7 +2,7 @@
 """Shown / parked / hidden state for Herdr spaces.
 
 shown   normal sidebar entry
-parked  label prefixed with PARK and kept at the bottom of the sidebar; processes keep running
+parked  label prefixed with PARK and kept at the bottom of the sidebar; agents exit and resume when shown
 hidden  space closed; its cwd, label and Claude session ids are kept in STATE so it can be reopened
 """
 import json
@@ -114,11 +114,17 @@ def machine_spaces(m):
     return (m["label"], json.loads(reply.stdout)["result"]["workspaces"] if reply.returncode == 0 else None)
 
 
-def remote_spaces():
-    """Remote spaces per enabled machine, fetched in parallel and cached for REMOTE_TTL seconds."""
-    if os.path.exists(REMOTE_CACHE) and time.time() - os.path.getmtime(REMOTE_CACHE) < REMOTE_TTL:
-        with open(REMOTE_CACHE) as f:
-            return json.load(f)
+def read_cache(path, default):
+    if not os.path.exists(path):
+        return default
+    with open(path) as f:
+        return json.load(f)
+
+
+def remote_spaces(fast=False):
+    """Remote spaces per enabled machine, fetched in parallel and cached for REMOTE_TTL seconds; fast returns the cache at any age."""
+    if fast or (os.path.exists(REMOTE_CACHE) and time.time() - os.path.getmtime(REMOTE_CACHE) < REMOTE_TTL):
+        return read_cache(REMOTE_CACHE, [])
     machines = [m for m in json.loads(subprocess.run([HERDR, "machine", "list", "--json"], capture_output=True, text=True).stdout) if m["enabled"]]
     with ThreadPoolExecutor() as pool:
         out = [(label, spaces) for label, spaces in pool.map(machine_spaces, machines) if spaces is not None]
@@ -128,17 +134,32 @@ def remote_spaces():
     return out
 
 
-def machines():
-    status = {m["id"]: m for m in json.loads(subprocess.run([HERDR, "machine", "status", "--json"], capture_output=True, text=True).stdout)}
-    return [{**m, **status[m["id"]]} for m in json.loads(subprocess.run([HERDR, "machine", "list", "--json"], capture_output=True, text=True).stdout)]
+STATUS_CACHE = os.path.join(STATE_DIR, "machine-status.json")
+
+
+def machines(fast=False):
+    """Saved machines with their probe status; fast uses the last probe (the live probe takes seconds)."""
+    if fast:
+        status = read_cache(STATUS_CACHE, {})
+    else:
+        status = {m["id"]: m for m in json.loads(subprocess.run([HERDR, "machine", "status", "--json"], capture_output=True, text=True).stdout)}
+        os.makedirs(STATE_DIR, exist_ok=True)
+        with open(STATUS_CACHE, "w") as f:
+            json.dump(status, f)
+    pending = {"status": "…", "error": None}
+    return [{**m, **status.get(m["id"], pending)} for m in json.loads(subprocess.run([HERDR, "machine", "list", "--json"], capture_output=True, text=True).stdout)]
 
 
 def set_machine(state, machine_id):
-    m = next(m for m in machines() if m["id"] == machine_id)
+    m = next(m for m in machines(fast=True) if m["id"] == machine_id)
     action = {"hidden": "remove", "parked": "disable", "shown": "reconnect" if m["enabled"] else "enable"}[state]
     subprocess.run([HERDR, "machine", action, machine_id], check=True, capture_output=True)
     if os.path.exists(REMOTE_CACHE):
         os.remove(REMOTE_CACHE)
+    status = read_cache(STATUS_CACHE, {})
+    status.pop(machine_id, None)
+    with open(STATUS_CACHE, "w") as f:
+        json.dump(status, f)
 
 
 def closed_worktrees():
@@ -154,7 +175,7 @@ def closed_worktrees():
     return out
 
 
-def rows():
+def rows(fast):
     """(key, state, label, status, summary, section, repo) per space; order is display order."""
     out = []
     spaces = workspaces()
@@ -166,19 +187,19 @@ def rows():
                     h["path"].replace(os.path.expanduser("~"), "~"), "local", h.get("repo") or h["label"]))
     for path, label, branch, repo, root in closed_worktrees():
         out.append((f"wt:{root}|{path}", "closed", label, branch, path.replace(os.path.expanduser("~"), "~"), "local", repo))
-    for machine, remote in remote_spaces():
+    for machine, remote in remote_spaces(fast):
         for ws in remote:
             out.append((f"rm:{machine}:{ws['workspace_id']}", "shown", ws["label"], ws["agent_status"], "",
                         f"remote · {machine}", repo_of(ws)))
-    for m in machines():
+    for m in machines(fast):
         out.append((f"mc:{m['id']}", "shown" if m["enabled"] else "parked", m["label"], m["status"],
                     m["error"] or m["target"], "remotes", "machines"))
     return out
 
 
-def list_rows():
+def list_rows(fast):
     marks = {"shown": f"{GREEN}●{RESET}", "parked": PARK.strip(), "hidden": f"{DIM}○{RESET}", "closed": f"{DIM}◌{RESET}"}
-    all_rows = rows()
+    all_rows = rows(fast)
     width = max([len(r[2]) for r in all_rows] + [10])
     for section in dict.fromkeys(r[5] for r in all_rows):
         print(f"hdr:{section}\t{BOLD}━━ {section.upper()}{RESET}")
@@ -237,6 +258,11 @@ def cli(*args):
     return json.loads(out)["result"]
 
 
+def pane_cmd(*args):
+    """Pane commands with no JSON reply (run, send-keys, send-text)."""
+    subprocess.run([HERDR, "pane", *args], check=True, capture_output=True)
+
+
 def claude_sessions(ws_id):
     sessions = []
     for pane in call("pane.list", workspace_id=ws_id)["panes"]:
@@ -255,7 +281,7 @@ def unhide(path, resume=True):
     for i, session in enumerate(entry["claude_sessions"] if resume else []):
         if i:
             root = cli("pane", "split", root, "--direction", "right", "--no-focus")["pane"]["pane_id"]
-        cli("pane", "run", root, "claude", "--resume", session)
+        pane_cmd("run", root, "claude", "--resume", session)
 
 
 def detach_worktree(ws):
@@ -266,6 +292,38 @@ def detach_worktree(ws):
     for pane in panes[1:]:
         cli("pane", "move", pane["pane_id"], "--tab", moved["created_tab"]["tab_id"], "--split", "right", "--target-pane", target, "--no-focus")
     return moved["created_workspace"]["workspace_id"]
+
+
+PARKED = os.path.join(STATE_DIR, "parked.json")
+RESUME = {"claude": ["claude", "--resume"], "codex": ["codex", "resume"]}
+
+
+def exit_agents(ws_id):
+    """Exit every agent in the space and remember its session per pane so showing the space resumes it."""
+    sessions = {}
+    for pane in call("pane.list", workspace_id=ws_id)["panes"]:
+        if pane.get("agent") not in RESUME:
+            continue
+        sessions[pane["pane_id"]] = [pane["agent"], pane["agent_session"]["value"]]
+        pane_cmd("send-keys", pane["pane_id"], "esc")
+        pane_cmd("send-text", pane["pane_id"], "/exit")
+        pane_cmd("send-keys", pane["pane_id"], "enter")
+    parked = read_cache(PARKED, {})
+    parked[ws_id] = sessions
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(PARKED, "w") as f:
+        json.dump(parked, f, indent=2)
+
+
+def resume_agents(ws_id):
+    parked = read_cache(PARKED, {})
+    sessions = parked.pop(ws_id, {})
+    live = {p["pane_id"] for p in call("pane.list", workspace_id=ws_id)["panes"]}
+    for pane_id, (agent, session) in sessions.items():
+        if pane_id in live:
+            pane_cmd("run", pane_id, *RESUME[agent], session)
+    with open(PARKED, "w") as f:
+        json.dump(parked, f, indent=2)
 
 
 def set_state(state, key):
@@ -285,9 +343,11 @@ def set_state(state, key):
         cli("workspace", "rename", ref, label)
     if state == "parked":
         cli("workspace", "rename", ref, PARK + label)
+        exit_agents(ref)
         sink_parked()
     elif state == "shown":
         cli("workspace", "rename", ref, label)
+        resume_agents(ref)
     elif state == "hidden":
         path = space_path(ws, call("pane.list", workspace_id=ref)["panes"])
         hidden = load_hidden() + [{"path": path, "label": label, "repo": repo_of(ws), "claude_sessions": claude_sessions(ref)}]
@@ -305,7 +365,7 @@ def main():
     cmd, *args = sys.argv[1:]
     try:
         if cmd == "list":
-            list_rows()
+            list_rows(fast=args == ["--fast"])
         elif cmd == "sweep":
             say("")
             sweep()

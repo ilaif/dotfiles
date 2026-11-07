@@ -11,14 +11,14 @@ import socket
 import subprocess
 import sys
 
-SOCKET = os.path.expanduser("~/.config/herdr/herdr.sock")
+SOCKET = os.environ.get("HERDR_SOCKET_PATH") or os.path.expanduser("~/.config/herdr/herdr.sock")
 NOTIFIER = os.path.expanduser("~/Applications/ClaudeNotifier.app/Contents/MacOS/terminal-notifier")
 HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def call(method, params):
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    client.connect(os.environ.get("HERDR_SOCKET_PATH", SOCKET))
+    client.connect(SOCKET)
     client.sendall((json.dumps({"id": method, "method": method, "params": params}) + "\n").encode())
     data = b""
     while not data.endswith(b"\n"):
@@ -61,7 +61,7 @@ def notify():
             "-message", message,
             "-group", f"herdr-{pane_id}",
             "-contentImage", os.path.join(HOOKS_DIR, f"herdr-{state(hook)}.png"),
-            "-execute", f"{sys.executable} {os.path.abspath(__file__)} focus '{pane_id}'",
+            "-execute", f"HERDR_SOCKET_PATH='{SOCKET}' {sys.executable} {os.path.abspath(__file__)} focus '{pane_id}'",
         ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

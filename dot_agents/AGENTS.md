@@ -28,6 +28,10 @@ When the user types `/graphify`, use the installed graphify skill or instruction
 - Write for the cases you expect to happen, not every case that could. This holds for review findings too (bots and humans): a hypothetical failure (hang, crash, leak, race, odd input) gets no code until it is observed or very likely in this code's real use. Decline it in the reply instead of patching.
 - Prefer plain functions over classes; prefer the simplest readable flow (flat early returns over nested try/catch).
 
+# Shell (Bash tool runs zsh)
+- zsh never word-splits an unquoted `$var`: `set -- $s`, `for x in $list` and `cmd $args` each see one word, so a loop or test built on splitting silently never matches or never exits. Split explicitly instead: `awk '{print $2}' <<<"$s"`, `${(f)var}` for lines, `${=var}` for whitespace, or write the logic in a bash script (`bash -c '…'`).
+- Don't name a variable `path`: in zsh it is tied to `PATH`.
+
 # Subagents
 Set `model` on every Agent call by use case. Never rely on `CLAUDE_CODE_SUBAGENT_MODEL`; it overrides this choice.
 - haiku: file search, grep sweeps, log and CI triage, summarizing output

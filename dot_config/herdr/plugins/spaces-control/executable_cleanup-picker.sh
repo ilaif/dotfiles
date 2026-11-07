@@ -4,7 +4,11 @@ cd "$(dirname "$0")"
 py="python3 cleanup.py"
 echo "Scanning worktrees (fetch + merged PRs)…"
 $py scan
-$py list | fzf --reverse --no-sort --ansi --delimiter='\t' --with-nth=2.. --track --id-nth=1 \
+sock="$(mktemp -u -t cleanup-fzf).sock"
+$py sizes "$sock" &
+sizes_pid=$!
+trap 'kill $sizes_pid 2>/dev/null' EXIT
+$py list | fzf --listen="$sock" --reverse --no-sort --ansi --delimiter='\t' --with-nth=2.. --track --id-nth=1 \
   --header="$($py header)" \
   --bind="space:execute-silent($py toggle {1})+reload($py list)+transform-header($py header)" \
   --bind="ctrl-a:execute-silent($py all)+reload($py list)+transform-header($py header)" \

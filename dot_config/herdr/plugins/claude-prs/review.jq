@@ -1,14 +1,16 @@
-# Review status of a `gh pr view --json author,latestReviews,reviewRequests,mergeStateStatus` object, counting
-# only humans: bots, the PR author and team review requests are ignored. An approved PR that GitHub would still
+# Review status of a `gh pr view --json author,latestReviews,reviewRequests,mergeStateStatus` object. Approvals
+# count from any reviewer, bots and agents included; every other state counts only humans. The PR author and
+# team review requests are ignored. An approved PR that GitHub would still
 # not merge (missing code-owner review, required checks, conflicts, behind base) is APPROVED_BLOCKED. GitHub
 # reports UNKNOWN until its first query computes the state, so UNKNOWN counts as mergeable.
 def human: (.login // .author.login // "") as $l | ($l | endswith("[bot]") | not) and .authorAssociation != "NONE";
 
 def review_state:
   .author.login as $me
-  | [.latestReviews[] | select(human and .author.login != $me) | .state] as $s
+  | [.latestReviews[] | select(.author.login != $me)] as $r
+  | [$r[] | select(human) | .state] as $s
   | if any($s[]; . == "CHANGES_REQUESTED") then "CHANGES"
-    elif any($s[]; . == "APPROVED") then
+    elif any($r[]; .state == "APPROVED") then
       (if .mergeStateStatus | IN("BLOCKED", "BEHIND", "DIRTY", "DRAFT") then "APPROVED_BLOCKED" else "APPROVED" end)
     elif any($s[]; . == "COMMENTED") then "COMMENTED"
     elif any(.reviewRequests[]; .__typename == "User" and human) then "REQUESTED"

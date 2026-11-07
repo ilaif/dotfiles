@@ -16,7 +16,10 @@ df -h /System/Volumes/Data
 diskutil apfs list | grep -E 'Name:|Capacity Consumed|Role' | paste - - -
 dust -d 1 -n 15 -x ~ ; dust -d 1 -n 10 ~/Library ~/Library/Application\ Support ~/Library/Group\ Containers
 docker system df
+dust -d 1 -n 15 -x /private/tmp
 ```
+
+For `/tmp` (macOS resolves it to `/private/tmp`), inventory current-user-owned files and folders older than 24 hours. A folder qualifies only when it and every descendant have modification times older than the cutoff; an old folder timestamp alone does not qualify. Exclude the current session's scratchpad, sockets, PID/lock files, and paths open by running processes (`lsof`). Treat unreadable trees as ineligible. List the eligible paths and their claimed size for approval; verify real yield with `df -k` after deletion.
 
 Watch for **phantom** space, where `du` counts blocks that other files share:
 - **`~/git` is mostly phantom.** pnpm hardlinks to its store and APFS clones count in full in every worktree. 176GB of `du` freed ~9GB when 8 worktrees went; stripping one worktree's `node_modules` freed 0GB.
@@ -35,6 +38,7 @@ Rank the tiers by real yield for this machine. The yields below are from one 460
 | Tier | What | Yield | Approval |
 | --- | --- | --- | --- |
 | Caches | `~/Library/Caches/*`, `~/.cache/*`, `~/.npm/_cacache`, `go clean -modcache`, `pnpm store prune`, `mise prune -y && mise cache clear`, Claude `vm_bundles`/`Cache`/`Code Cache`, Electron apps' `Cache`/`Code Cache`/`GPUCache`/`Service Worker` | ~40GB | user's go |
+| Temp files | Eligible `/private/tmp` files and folders older than 24 hours, using the measurement rules above | measure on this machine | user's go |
 | Docker | `docker image prune -af`, `docker builder prune -af`, `docker exec <k3d-server-container> crictl rmi --prune` | ~11GB | user's go |
 | Old versions | `~/.codex/packages/*/releases/*` except the one `current` links to; `~/Library/Application Support/JetBrains/<IDE><old-version>` | ~8GB | user's go |
 | Local cluster reset | the repo's own teardown for its k3d/kind dev cluster (fallback `k3d cluster delete`), then `docker system prune -af --volumes` | ~21GB | explicit: wipes local databases and seed data; the repo's bring-up rebuilds it |

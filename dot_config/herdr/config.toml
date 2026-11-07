@@ -88,3 +88,11 @@ key = "prefix+alt+p"
 type = "plugin_action"
 command = "ilai.spaces-control.cleanup"
 description = "Clean up worktrees"
+
+# >>> herdr-projects key (added by the herdr-projects plugin; `herdr-projects remove-extras` removes it)
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "herdr-projects.open"
+description = "work board"
+# <<< herdr-projects key

@@ -2,10 +2,14 @@
 set -euo pipefail
 sv="$(cd "$(dirname "$0")" && pwd)/spaces.py"
 python3 "$sv" sweep
-list="python3 '$sv' list"
-key="$(python3 "$sv" list | fzf --reverse --no-sort --ansi --delimiter='\t' --with-nth=2.. \
+list="python3 '$sv' list --fast"
+full="python3 '$sv' list"
+filled="$(mktemp -u)"
+trap 'rm -f "$filled"' EXIT
+key="$(python3 "$sv" list --fast | fzf --reverse --no-sort --ansi --delimiter='\t' --with-nth=2.. \
   --header="enter focus · ctrl-s show · ctrl-p park · ctrl-x hide · alt-↑/↓ move · esc close" \
   --bind="start:down" \
+  --bind="load:transform:[ -e '$filled' ] || { touch '$filled'; echo \"reload-sync($full)\"; }" \
   --bind="enter:transform:[[ {1} == hdr:* ]] && echo ignore || echo accept" \
   --bind="ctrl-s:execute-silent(python3 '$sv' set shown {1})+reload($list)+transform-header(python3 '$sv' header)" \
   --bind="ctrl-p:execute-silent(python3 '$sv' set parked {1})+reload($list)+transform-header(python3 '$sv' header)" \

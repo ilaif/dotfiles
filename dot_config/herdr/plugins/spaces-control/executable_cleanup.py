@@ -16,6 +16,7 @@ from spaces import BOLD, DIM, GREEN, HERDR, RESET, STATE_DIR, YELLOW, cli, works
 
 RED = "\033[31m"
 CACHE = os.path.join(STATE_DIR, "cleanup.json")
+SIZES = os.path.join(STATE_DIR, "cleanup-sizes.json")
 BUSY = {"working", "blocked"}
 
 
@@ -45,6 +46,47 @@ def modified_at(path, status):
         if os.path.lexists(file):
             times.append(os.lstat(file).st_mtime)
     return max(times)
+
+
+def disk_usage(path):
+    out = subprocess.run(["du", "-sk", path], capture_output=True, text=True).stdout
+    return int(out.split()[0]) * 1024 if out else None
+
+
+def gb(size):
+    return f"{size / 1e9:.1f} GB" if size is not None else "…"
+
+
+def load_sizes():
+    """{path: [bytes, fresh]}: sizes from the last run stay until this run's du replaces them (fresh)."""
+    if not os.path.exists(SIZES):
+        return {}
+    with open(SIZES) as f:
+        return json.load(f)
+
+
+def save_sizes(sizes):
+    with open(SIZES + ".tmp", "w") as f:
+        json.dump(sizes, f)
+    os.replace(SIZES + ".tmp", SIZES)
+
+
+def size_of(sizes, path):
+    return sizes.get(path, [0])[0] or 0
+
+
+def measure_sizes(fzf_socket):
+    """Refresh SIZES one worktree at a time and push a reload to the running fzf after each, so the list shows first."""
+    sizes = load_sizes()
+    paths = [r["path"] for r in load() if r["reason"] != "missing dir"]
+    refresh = "reload(python3 cleanup.py list)+transform-header(python3 cleanup.py header)"
+    with ThreadPoolExecutor(4) as pool:
+        jobs = {pool.submit(disk_usage, path): path for path in paths}
+        for job in as_completed(jobs):
+            sizes[jobs[job]] = [job.result(), True]
+            save_sizes(sizes)
+            subprocess.run(["curl", "-s", "--unix-socket", fzf_socket, "-X", "POST", "http://localhost", "-d", refresh],
+                           capture_output=True)
 
 
 def age(ts):
@@ -95,6 +137,8 @@ def scan(current_ws):
                 if wt["is_linked_worktree"]:
                     jobs.append(pool.submit(classify, wt, repo, *contexts[repo], spaces, current_ws))
         rows = [job.result() for job in jobs]
+    cached = load_sizes()
+    save_sizes({r["path"]: [cached[r["path"]][0], False] for r in rows if r["path"] in cached})
     save(sorted(rows, key=lambda r: (not r["selected"], not r["merged"], -(r["modified_at"] or 0))))
 
 
@@ -114,15 +158,17 @@ def risky(r):
 
 
 def list_rows():
-    rows = load()
+    rows, sizes = load(), load_sizes()
     width = max([len(os.path.basename(r["path"])) for r in rows] + [10])
     for r in rows:
         box = f"{GREEN}[x]{RESET}" if r["selected"] else f"{DIM}[ ]{RESET}"
         space = "●" if r["workspace_id"] else " "
         color = YELLOW if risky(r) else DIM
         modified = age(r["modified_at"]) if r["modified_at"] else "-"
+        size, fresh = sizes.get(r["path"], [None, False])
+        size = f"{RESET if fresh else DIM}{gb(size):>8}{RESET}"
         print(f"{r['path']}\t{box} {space} {BOLD}{os.path.basename(r['path']):<{width}}{RESET}  "
-              f"{modified:>9}  {color}{r['reason']:<22}{RESET} {DIM}{r['branch']}{RESET}")
+              f"{modified:>9}  {size}  {color}{r['reason']:<22}{RESET} {DIM}{r['branch']}{RESET}")
 
 
 def toggle(path):
@@ -134,12 +180,12 @@ def select_all(value):
 
 
 def header():
-    rows = load()
+    rows, sizes = load(), load_sizes()
     picked = [r for r in rows if r["selected"]]
     n_risky = sum(1 for r in picked if risky(r))
     warn = f"  {YELLOW}{n_risky} unmerged/dirty{RESET}" if n_risky else ""
     print(f"space toggle · ctrl-a all · ctrl-d none · enter remove · esc cancel\n"
-          f"{len(picked)}/{len(rows)} selected · ● open space{warn}")
+          f"{len(picked)}/{len(rows)} selected ({gb(sum(size_of(sizes, r['path']) for r in picked))}) · ● open space{warn}")
 
 
 def remove(r):
@@ -169,13 +215,14 @@ def apply():
         if branches:
             git(repo, "branch", "-D", *branches)
             print(f"{DIM}deleted {len(branches)} merged branches in {repo}{RESET}")
-    print(f"\n{len(removed) + len(missing)}/{len(picked)} removed")
+    print(f"\n{len(removed) + len(missing)}/{len(picked)} removed, {gb(sum(size_of(load_sizes(), r['path']) for r in removed))} freed")
 
 
 def main():
     cmd, *args = sys.argv[1:]
     {"scan": lambda: scan(os.environ.get("CLEANUP_WS", "")), "list": list_rows, "toggle": lambda: toggle(args[0]),
-     "all": lambda: select_all(True), "none": lambda: select_all(False), "header": header, "apply": apply}[cmd]()
+     "all": lambda: select_all(True), "none": lambda: select_all(False), "header": header, "apply": apply,
+     "sizes": lambda: measure_sizes(args[0])}[cmd]()
 
 
 if __name__ == "__main__":
