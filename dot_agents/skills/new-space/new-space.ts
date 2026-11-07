@@ -99,14 +99,17 @@ function createWorktree() {
   for (let n = 1; ; n++) {
     const slug = n === 1 ? args.slug : `${args.slug}-${n}`;
     const path = `${dirname(repo!)}/${slug}`;
+    const branchExisted = !!trySh("git", "-C", repo!, "rev-parse", "--verify", "--quiet", `refs/heads/${slug}`);
     try {
       return { slug, path, ...herdr("worktree", "create", "--cwd", repo!, "--branch", slug, "--base", base, "--path", path, "--label", slug, "--no-focus") };
     } catch (err) {
-      const collision = /already exists/i.test(String((err as { stdout?: unknown }).stdout ?? err));
+      // git creates the branch before checking out, so a failed create can leave a branch named for nothing.
+      if (!branchExisted) {
+        trySh("git", "-C", repo!, "worktree", "prune");
+        trySh("git", "-C", repo!, "branch", "-D", slug);
+      }
+      const collision = /already (exists|used by worktree)/.test((err as { stderr: string }).stderr);
       if (collision && n < 5) continue;
-      // A failed checkout leaves its branch behind; remove it so a rerun reuses the name.
-      trySh("git", "-C", repo!, "worktree", "prune");
-      trySh("git", "-C", repo!, "branch", "-D", slug);
       throw err;
     }
   }
