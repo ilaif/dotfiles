@@ -1,5 +1,6 @@
 // Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--model <id>] [--machine <where>] [--repo <path>]
 //        node new-space.ts --list-models [--agent claude] [--machine <where>]
+import { statfsSync } from "node:fs";
 import { dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { checkHerdr, failIfProblems, on, problems, resolveMachine, tryRun } from "./herdr-lib.ts";
@@ -77,6 +78,18 @@ if (repo) {
   }
 }
 if (!machine && !tryRun("which", [args.agent])) problems.push(`agent CLI "${args.agent}" not on PATH`);
+
+/** A worktree with installed dependencies can take several GB; a full disk fails mid-checkout. */
+const MIN_FREE_BYTES = 8 * 1024 ** 3;
+if (!machine && repo) {
+  const stats = statfsSync(dirname(repo));
+  const free = stats.bavail * stats.bsize;
+  if (free < MIN_FREE_BYTES) {
+    problems.push(
+      `only ${(free / 1024 ** 3).toFixed(1)} GB free beside ${repo} (need ${MIN_FREE_BYTES / 1024 ** 3} GB): remove stale worktrees (/cleanup-worktrees), then rerun`,
+    );
+  }
+}
 failIfProblems("new-space");
 
 sh("git", "-C", repo!, "fetch", "origin");
@@ -89,7 +102,12 @@ function createWorktree() {
     try {
       return { slug, path, ...herdr("worktree", "create", "--cwd", repo!, "--branch", slug, "--base", base, "--path", path, "--label", slug, "--no-focus") };
     } catch (err) {
-      if (n === 5) throw err;
+      const collision = /already exists/i.test(String((err as { stdout?: unknown }).stdout ?? err));
+      if (collision && n < 5) continue;
+      // A failed checkout leaves its branch behind; remove it so a rerun reuses the name.
+      trySh("git", "-C", repo!, "worktree", "prune");
+      trySh("git", "-C", repo!, "branch", "-D", slug);
+      throw err;
     }
   }
 }
