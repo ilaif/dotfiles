@@ -121,5 +121,5 @@ if (closeLast) console.log(`CLOSE LAST (ends this session): herdr workspace clos
 if (machine) {
   const closed = new Set(spaces.map((s) => s.workspace.workspace_id));
   const remaining = workspaces.filter((w) => !closed.has(w.workspace_id) && w.worktree?.is_linked_worktree);
-  if (!remaining.length) console.log(`LAST SPACE on ${machine.label}: ask whether to keep, stop, or delete the Podium workspace`);
+  if (!remaining.length) console.log(`LAST SPACE on ${machine.label}: ask whether to keep, stop, or delete the remote workspace`);
 }

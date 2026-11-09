@@ -22,6 +22,6 @@ The script checks everything before touching anything, then per space: stops pro
 ## After it succeeds
 
 - `CLOSE LAST (ends this session): herdr workspace close <id>` — the target is the workspace you are running in. Send your report first, then make that command your last call.
-- `LAST SPACE on <machine>` — ask what to do with the Podium workspace: keep it (the default), stop it (`dx ws stop <name>`; volumes persist), or delete it (`dx ws rm <name> --yes`, which also forgets its Herdr machine). Run `dx` from the act checkout, and delete only on an explicit answer.
+- `LAST SPACE on <machine>` — ask what to do with the remote workspace: keep it (the default), stop it, or delete it. Delete only on an explicit answer.
 
 `--dry-run` shows what would close without changing anything.

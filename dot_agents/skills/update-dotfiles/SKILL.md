@@ -59,13 +59,26 @@ For a template you edited, show the rendered output is a no-op on the live file 
 
 Claude settings hooks: `modify_settings.json.tmpl` merges with jq `*`, which **replaces arrays**. Never put `hooks` in `claude-settings.json`. Add a missing hook to that template's `$hooks` list instead, which appends it per event only when it's missing.
 
-## 6. Commit and push
+## 6. Sensitive-content check, then commit and push
+
+The repo is public, so scan before committing: the staged diff, and the whole tracked tree.
 
 ```bash
 cd "$(chezmoi source-path)"
 git diff --stat
-git diff | grep -niE 'act\.security|azure|podium|tenant|secret|token'   # must be empty or clearly benign
+PAT='act\.security|actsec|azure|aws|podium|tenant|secret|token|password|api[_-]?key|BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}|xox[bap]-|ghp_|sk-[A-Za-z0-9]{20,}|@act\.|internal|corp'
+git diff | grep -niE "$PAT"                      # staged/unstaged changes
+git grep -niE "$PAT" -- . ':!Brewfile'           # whole tracked tree
+gitleaks detect --no-banner --redact             # secrets across history
+```
+
+Triage each hit as benign (generic word, public tool name) or sensitive (credential, internal endpoint, Act-specific tooling, tenant or account ID, work email). Remove or exclude every sensitive hit before committing.
+
+```bash
 git add -A && git commit -m "<what changed, by area>" && git push
 ```
 
-Report the commit hash, what was synced in each direction, and anything you left out and why.
+Report the commit hash, what was synced in each direction, and anything you left out and why. Always end with an explicit **Sensitive-content check** line:
+
+- Clean: "Sensitive-content check: clean. Scanned the diff, N tracked files and history (gitleaks); no credentials or company-specific content. M benign hits (list them in a few words)."
+- Not clean: list each finding with file and line, and say what you did about it. Do not push until resolved or the user approves.

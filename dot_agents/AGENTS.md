@@ -15,6 +15,9 @@ The reader has ADHD. Shape every response so it can be acted on:
 
 Exceptions: explain fully when asked to explain. Confirm before destructive actions. After three failed fixes, stop and name the doubtful assumption. If the request is ambiguous, ask one short question.
 
+# Herdr tab name
+On the first prompt of a session, when `HERDR_ENV=1`, name the tab after the topic before any other tool call. Read the label with `herdr tab get "$HERDR_TAB_ID" | jq -r .result.tab.label`; if it is only digits (Herdr's default), run `herdr tab rename "$HERDR_TAB_ID" <slug>`, where the slug is 2–4 lowercase kebab-case words naming the topic (e.g. `pr1759-grokbot-review`). A non-numeric label was set on purpose: leave it.
+
 # graphify
 - **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
