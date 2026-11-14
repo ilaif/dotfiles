@@ -22,9 +22,9 @@ for dir in "$HOME"/.config/herdr/plugins/*/herdr-plugin.toml; do
   dir="${dir%/herdr-plugin.toml}"
   grep -qF "local:$dir]" <<<"$INSTALLED" && continue
   echox "Linking ${dir##*/}"
-  herdr plugin link "$dir"
+  herdr plugin link "$dir" >/dev/null
 done
 
 # Third-party plugins.
 grep -q "github:smarzban/herdr-file-viewer" <<<"$INSTALLED" ||
-  { echox "Installing herdr-file-viewer"; herdr plugin install smarzban/herdr-file-viewer; }
+  { echox "Installing herdr-file-viewer"; herdr plugin install --yes smarzban/herdr-file-viewer >/dev/null; }

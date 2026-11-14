@@ -1,0 +1,14 @@
+{{ if ne .chezmoi.os "darwin" -}}
+#!/bin/bash
+# Oh My Zsh and its plugins on Linux: parallel shallow clones of the repos .chezmoiexternal.yaml.tmpl pulls as
+# archives on macOS. Missing ones only; Oh My Zsh updates itself from its git checkout.
+set -e
+omz="$HOME/.oh-my-zsh"
+[[ -d "$omz" ]] || git clone -q --depth 1 https://github.com/ohmyzsh/ohmyzsh "$omz"
+for repo in zsh-users/zsh-completions zsh-users/zsh-autosuggestions zsh-users/zsh-syntax-highlighting \
+  larkery/zsh-histdb m42e/zsh-histdb-fzf Aloxaf/fzf-tab; do
+  dest="$omz/custom/plugins/${repo#*/}"
+  [[ -d "$dest" ]] || git clone -q --depth 1 "https://github.com/$repo" "$dest" &
+done
+wait
+{{ end -}}

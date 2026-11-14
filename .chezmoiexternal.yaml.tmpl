@@ -1,4 +1,6 @@
-# Oh My Zsh
+# Oh My Zsh. macOS only: on Linux, run_after-2-zsh-plugins shallow-clones the same repos in parallel,
+# because applying these exact archives takes ~10s on a fresh home.
+{{ if eq .chezmoi.os "darwin" -}}
 .oh-my-zsh:
   type: "archive"
   url: "https://github.com/ohmyzsh/ohmyzsh/archive/master.tar.gz"
@@ -41,6 +43,8 @@
   exact: true
   stripComponents: 1
   refreshPeriod: "168h"
+
+{{ end -}}
 
 # Tmux
 .tmux:

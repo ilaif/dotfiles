@@ -21,16 +21,27 @@ SKILLS=(
 command -v npx >/dev/null || exit 0
 
 LOCK="$HOME/.agents/.skill-lock.json"
+STAMP="$HOME/.agents/.skills-updated"
+LOG="$HOME/.cache/sync-skills.log"
 
-cd "$HOME"
+missing=()
 for entry in "${SKILLS[@]}"; do
   read -r source skill <<<"$entry"
-  if jq -e --arg s "$skill" '.skills[$s]' "$LOCK" >/dev/null 2>&1; then
-    continue
-  fi
-  echox "Installing $skill from $source"
-  npx -y skills add "$source" -g -s "$skill" -a claude-code -y >/dev/null
+  jq -e --arg s "$skill" '.skills[$s]' "$LOCK" >/dev/null 2>&1 || missing+=("$entry")
 done
+# Updates run weekly; every apply would cost seconds of npx and git for nothing new.
+[[ ${#missing[@]} -eq 0 && -n "$(find "$STAMP" -mtime -7 2>/dev/null)" ]] && exit 0
 
-echox "Updating skills"
-npx -y skills update -g -y >/dev/null
+# Installs clone each source repo (~15s for a fresh home), so they run in the background and the apply returns.
+echox "Installing ${#missing[@]} and updating skills in the background (log: $LOG)"
+mkdir -p "${LOG%/*}"
+cd "$HOME"
+nohup bash -c '
+  for entry in "$@"; do
+    read -r source skill <<<"$entry"
+    echo "Installing $skill from $source"
+    npx -y skills add "$source" -g -s "$skill" -a claude-code -y
+  done
+  echo "Updating skills"
+  npx -y skills update -g -y && touch "'"$STAMP"'"
+' sync-skills "${missing[@]}" >"$LOG" 2>&1 &
