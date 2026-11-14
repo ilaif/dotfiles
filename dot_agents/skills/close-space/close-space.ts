@@ -49,11 +49,16 @@ failIfProblems("close-space");
 const spaces = targets.map((w) => {
   const wt = w!.worktree?.is_linked_worktree ? w!.worktree : undefined;
   const branch = wt && sh("git", "-C", wt.checkout_path, "branch", "--show-current");
+  const status = wt ? sh("git", "-C", wt.checkout_path, "status", "--porcelain") : "";
   return {
     workspace: w!,
     wt,
     branch,
-    dirty: wt ? sh("git", "-C", wt.checkout_path, "status", "--porcelain") : "",
+    status,
+    dirty: status
+      .split("\n")
+      .filter((line) => line.trim() && !/(^|\/)mise\.lock$/.test(line.slice(3)))
+      .join("\n"),
     unpushed: branch ? sh("git", "-C", wt!.repo_root, "log", "--oneline", branch, "--not", "--remotes") : "",
   };
 });
@@ -104,7 +109,7 @@ for (const s of spaces) {
     stopProcesses(s.wt.checkout_path);
     const main = s.wt.repo_root;
     try {
-      sh("git", "-C", main, "worktree", "remove", ...(args.force ? ["--force"] : []), s.wt.checkout_path);
+      sh("git", "-C", main, "worktree", "remove", ...(args.force || (s.status && !s.dirty) ? ["--force"] : []), s.wt.checkout_path);
     } catch (err) {
       if (sh("git", "-C", main, "worktree", "list").includes(s.wt.checkout_path)) throw err;
       sh("git", "-C", main, "worktree", "prune");

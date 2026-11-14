@@ -1,39 +1,17 @@
-# Output style
-
-The reader has ADHD. Shape every response so it can be acted on:
-
-1. Lead with the answer or next action: command, path, or snippet first.
-2. Number multi-step work; one bounded action per step.
-3. End with one next action doable in under two minutes.
-4. Finish the current issue before raising a new one.
-5. Restate progress each turn ("step 3 of 5 done").
-6. Give time estimates in concrete units, never "a bit".
-7. After a change, show what now works.
-8. Errors: state location, cause, and fix. No drama.
-9. Cap lists at 5 items.
-10. No preamble, no recaps, no closers.
-
-Exceptions: explain fully when asked to explain. Confirm before destructive actions. After three failed fixes, stop and name the doubtful assumption. If the request is ambiguous, ask one short question.
-
 # Herdr tab name
 On the first prompt of a session, when `HERDR_ENV=1`, name the tab after the topic before any other tool call. Read the label with `herdr tab get "$HERDR_TAB_ID" | jq -r .result.tab.label`; if it is only digits (Herdr's default), run `herdr tab rename "$HERDR_TAB_ID" <slug>`, where the slug is 2–4 lowercase kebab-case words naming the topic (e.g. `pr1759-grokbot-review`). A non-numeric label was set on purpose: leave it.
 
-# graphify
-- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
 # Pull requests
-- After opening a PR (any repo), suggest 1–3 reviewers and ask me who to assign. Base the picks on the code owners for the changed paths and on who recently changed those files (`git log`), with one line of reasoning each. The question is non-blocking: keep working (CI, review loop) while it waits, and assign only the people I name.
+After opening a PR (any repo), suggest 1–3 reviewers and ask me who to assign. Base the picks on the code owners for the changed paths and on who recently changed those files (`git log`), with one line of reasoning each. The question is non-blocking: keep working (CI, review loop) while it waits, and assign only the people I name.
 
 # Code style
-- Assume the happy path. No defensive code: no guards for states that can't happen, no repeated state re-checks, no list-then-reread, no catch-and-continue for unlikely races, no fallback chains, no optional chaining on always-set fields. Add a guard only after a real failure is observed.
-- Keep guards only on security paths (authz, secrets, audit) and input validation at trust boundaries.
-- Write for the cases you expect to happen, not every case that could. This holds for review findings too (bots and humans): a hypothetical failure (hang, crash, leak, race, odd input) gets no code until it is observed or very likely in this code's real use. Decline it in the reply instead of patching.
-- Prefer plain functions over classes; prefer the simplest readable flow (flat early returns over nested try/catch).
+- Happy path only. Write for the cases this code meets in real use; a guard, retry, fallback or re-check lands only after its failure is observed. The same bar applies to review findings (bots and humans): decline a hypothetical failure in the reply instead of patching it.
+- Guards stay on security paths (authz, secrets, audit) and input validation at trust boundaries.
+- Plain functions over classes; flat early returns over nested try/catch.
 
 # Shell (Bash tool runs zsh)
 - zsh never word-splits an unquoted `$var`: `set -- $s`, `for x in $list` and `cmd $args` each see one word, so a loop or test built on splitting silently never matches or never exits. Split explicitly instead: `awk '{print $2}' <<<"$s"`, `${(f)var}` for lines, `${=var}` for whitespace, or write the logic in a bash script (`bash -c '…'`).
-- Don't name a variable `path`: in zsh it is tied to `PATH`.
+- Name variables anything but `path`: in zsh it is tied to `PATH`.
 
 # Subagents
 Set `model` on every Agent call by use case. Never rely on `CLAUDE_CODE_SUBAGENT_MODEL`; it overrides this choice.
@@ -41,4 +19,5 @@ Set `model` on every Agent call by use case. Never rely on `CLAUDE_CODE_SUBAGENT
 - sonnet: implementation, tests, fixing review comments, routine code review
 - opus: design and planning, hard debugging, security-sensitive review
 - fable: only when the user asks for it
-`fork` agents ignore `model` and inherit the parent's.
+
+@/Users/ilai/.codex/RTK.md

@@ -157,7 +157,7 @@ were asked repeatedly. Search the repo first, then use these:
 
 ## 6. Make failure explicit
 
-- No hidden throws. Put failure in the return type (see `never-throw-typescript`).
+- No hidden throws. Put failure in the return type.
 - `Promise.all` rejects on the first failure. Pick deliberately between
   all-or-nothing and `allSettled` with per-item handling, and say which.
 - Release resources on every path. Don't share mutable state across concurrent

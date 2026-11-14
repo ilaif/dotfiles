@@ -16,7 +16,7 @@ The script checks everything before touching anything, then per space: stops pro
 ## Exit codes
 
 - **1 — `close-space preflight failed:`** every problem at once, each with its fix. No match / several matches: show the candidates and ask. Machine not saved or unreachable: follow the line (see new-space), or relay it and stop.
-- **2 — `close-space needs confirmation:`** a dirty tree, unpushed commits, a working agent, or a main checkout (nothing to remove, only the workspace closes). Show the listed details in a few lines and ask. On yes, rerun with `--force` for just the confirmed spaces (`--force` also forces `git worktree remove`).
+- **2 — `close-space needs confirmation:`** a dirty tree (a `mise.lock` change alone doesn't count; it is discarded), unpushed commits, a working agent, or a main checkout (nothing to remove, only the workspace closes). Show the listed details in a few lines and ask. On yes, rerun with `--force` for just the confirmed spaces (`--force` also forces `git worktree remove`).
 - **0** — one `closed …` line per space; relay them.
 
 ## After it succeeds

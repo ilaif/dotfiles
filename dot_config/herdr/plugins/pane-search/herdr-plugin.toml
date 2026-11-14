@@ -1,0 +1,20 @@
+id = "ilai.pane-search"
+name = "Pane Search"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Fuzzy-search every pane across spaces (space, tab, agent, title, worktree, branch, recap, session id) and focus the pick"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "open"
+title = "Search panes"
+contexts = ["workspace", "global"]
+command = ["./open.sh"]
+
+[[panes]]
+id = "picker"
+title = "Search panes"
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["./picker.sh"]

@@ -28,7 +28,7 @@ Every Slack search passes `response_format: detailed`, `include_context: false`,
 - **dm**: same tool, `filters: "is:dm after:<today-7d>"`, `channel_types: "im,mpim"`, `sort: timestamp`, paged to the end. Skip results with empty text.
 - **mention**: same tool, `keywords: ["<@U094RC7A7R6>"]`, `filters: "after:<today-7d>"`, `sort: timestamp`, paged to the end. Bot posts (Nudge, Linear) rank with people; keep them and let step 4 rank.
 - **pr**: `gh search prs --author @me --state open --limit 100 --json repository,number,title,url,isDraft,updatedAt`, then `gh pr view <url> --json headRefName,headRefOid,reviewDecision,mergeStateStatus,statusCheckRollup,reviewThreads` for each.
-- **review**: `gh search prs --review-requested @me --state open --limit 100 --json repository,number,title,url,isDraft,updatedAt`, then `gh pr view <url> --json headRefOid,author,additions,deletions`.
+- **review**: `gh search prs "user-review-requested:@me" "is:open" --limit 100 --json repository,number,title,url,isDraft,updatedAt` (direct requests only: `--review-requested @me` also matches PRs requested through a team), then `gh pr view <url> --json headRefOid,author,additions,deletions`.
 
 Done when every source ran to its last page and each item has a key and version.
 
@@ -40,7 +40,7 @@ Done when every fresh key is upserted and every kind is pruned to its current li
 
 ## 3. Correlate PRs with Herdr
 
-`herdr workspace list` gives each workspace's `label`, `workspace_id` and `worktree.checkout_path`. Take `git -C <checkout_path> branch --show-current` for each and match it to the PR's `headRefName`. Pass the matched `"<label> (<workspace_id>)"` as the `herdr` field when upserting the PR. A PR without a matching workspace has an empty herdr field.
+`herdr workspace list` gives each workspace's `label`, `workspace_id` and `worktree.checkout_path`; an asleep (💤) workspace has an empty `checkout_path`, so take its directory from `herdr pane list` (`cwd`) instead. Take `git -C <dir> branch --show-current` for each and match it to the PR's `headRefName`. Note the workspace's running Claude pane (`agent` = `claude` in `herdr pane list`) and include its id in the herdr field. Pass the matched `"<label> (<workspace_id>)"` as the `herdr` field when upserting the PR. A PR without a matching workspace has an empty herdr field.
 
 Done when every PR is matched or confirmed unmatched.
 
@@ -58,4 +58,4 @@ Within a tier, older first. Name one item as **next**, with the reason in one li
 
 ## 5. Output
 
-Lead with **Next**: the link, the one-line reason, the estimate, then the first action doable in under two minutes. Below it, the ranked rest as a table of at most five rows per tier, `Tier | Item | Why | Links`. Every row links its Slack permalink or PR URL; a PR row carries its Herdr session next to the PR link (`PR URL · herdr: label (id)`), and `herdr workspace focus <id>` is the jump command. Items beyond five in a tier collapse into a count with the link to the oldest.
+Lead with **Next**: the link, the one-line reason, the estimate, then the first action doable in under two minutes. Below it, the ranked rest as a table of at most five rows per tier, `Tier | Item | Why | Links`. Every row links its Slack permalink or PR URL; every PR row always carries its Herdr session next to the PR link (`PR URL · herdr: label (id)`) and a jump command the user can paste into the session, written `! herdr workspace focus <id>`; a PR without a workspace says `herdr: none`. This holds for every PR row, including Next and review requests. Items beyond five in a tier collapse into a count with the link to the oldest.

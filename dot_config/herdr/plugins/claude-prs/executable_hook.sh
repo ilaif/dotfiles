@@ -64,18 +64,27 @@ EOF
   report "$@"
 }
 
+# One GraphQL request for every open PR (an alias each), shaped like `gh pr view --json` for review.jq.
 refresh() {
-  tmp="$(mktemp -d)"
-  for url in $(jq -r '.prs[] | select(.state != "MERGED" and .state != "CLOSED") | .url' "$state_file"); do
-    gh pr view "$url" --json url,state,isDraft,author,latestReviews,reviewRequests,mergeStateStatus \
-      | jq -L "$PLUGIN_DIR" 'include "review";
-        {(.url): {state: (if .isDraft and .state == "OPEN" then "DRAFT" else .state end), review: review_state}}' >"$tmp/${url##*/}" &
-  done
-  wait
-  states="$(cat "$tmp"/* 2>/dev/null | jq -s 'add // {}')"
-  jq --argjson s "$states" '.prs[] |= (. + ($s[.url] // {})) | .refreshed_ms = (now * 1000 | floor)' "$state_file" >"$tmp/state.json"
-  mv "$tmp/state.json" "$state_file"
-  rm -rf "$tmp"
+  open="$(jq -c '[.prs[] | select(.state != "MERGED" and .state != "CLOSED") | .url]' "$state_file")"
+  [ "$open" != "[]" ] || return 0
+  query="$(printf '%s' "$open" | jq -r 'to_entries | map(.key as $i | .value | split("/") as $p
+      | "p\($i): repository(owner: \"\($p[3])\", name: \"\($p[4])\") { pullRequest(number: \($p[6])) { ...f } }")
+    | "query { \(join(" ")) } fragment f on PullRequest { state isDraft mergeStateStatus author { login }
+      latestReviews(first: 20) { nodes { author { login } authorAssociation state } }
+      reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } } } } }"')"
+  states="$(gh api graphql -f query="$query" | jq -c -L "$PLUGIN_DIR" --argjson open "$open" 'include "review";
+    [.data | to_entries[] | (.key[1:] | tonumber) as $i | .value.pullRequest
+      | .latestReviews |= .nodes | .reviewRequests |= [.nodes[].requestedReviewer]
+      | {($open[$i]): {state: (if .isDraft and .state == "OPEN" then "DRAFT" else .state end), review: review_state}}]
+    | add // {}')"
+  # Queue each state or review change for notify.sh, which hands it to the model on its next tool call or prompt.
+  jq -r --argjson s "$states" '.prs[] | . as $p | ($s[.url] // {}) as $n
+    | [if $p.state != null and ($n.state // $p.state) != $p.state then "\($p.state) → \($n.state)" else empty end,
+       if $p.review != null and ($n.review // $p.review) != $p.review then "review \($p.review) → \($n.review)" else empty end]
+    | select(length > 0) | "- \($p.repo)#\($p.number) (\($p.url)): \(join(", "))"' "$state_file" >>"$STATE_DIR/$session_id.notify"
+  jq --argjson s "$states" '.prs[] |= (. + ($s[.url] // {})) | .refreshed_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
+  mv "$state_file.$$" "$state_file"
 }
 
 branch_pr_url() { (cd "$1" && gh pr view --json url --jq .url 2>/dev/null) || true; }

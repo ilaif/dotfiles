@@ -1,6 +1,7 @@
 onboarding = false
 [keys]
 next_agent = "ctrl+cmd+a"
+focus_agent = "ctrl+cmd+1..9"
 workspace_picker = ["prefix+w", "ctrl+k"]
 focus_pane_up = "alt+i"
 focus_pane_down = ["prefix+j", "alt+k"]
@@ -19,7 +20,7 @@ agent_panel_sort = "spaces"
 
 status_indicators = "dots"
 [ui.sidebar.agents.rows_by_agent]
-claude = [["state_icon", { token = "$next", fg = "#bd93f9", bold = true }, "workspace", "tab"], [{ token = "$recap", dim = true }], [{ token = "$open1", fg = "#50fa7b" }, { token = "$open2", fg = "#50fa7b" }, { token = "$open3", fg = "#50fa7b" }, { token = "$open4", fg = "#50fa7b" }, { token = "$open5", fg = "#50fa7b" }, { token = "$open6", fg = "#50fa7b" }, { token = "$open7", fg = "#50fa7b" }, { token = "$open8", fg = "#50fa7b" }, { token = "$draft1", fg = "#6272a4" }, { token = "$draft2", fg = "#6272a4" }, { token = "$draft3", fg = "#6272a4" }, { token = "$draft4", fg = "#6272a4" }, { token = "$draft5", fg = "#6272a4" }, { token = "$draft6", fg = "#6272a4" }, { token = "$draft7", fg = "#6272a4" }, { token = "$draft8", fg = "#6272a4" }]]
+claude = [["state_icon", { token = "$empty", fg = "#6272a4" }, { token = "$next", fg = "#bd93f9", bold = true }, "workspace", "tab"], [{ token = "$recap", dim = true }], [{ token = "$open1", fg = "#50fa7b" }, { token = "$open2", fg = "#50fa7b" }, { token = "$open3", fg = "#50fa7b" }, { token = "$open4", fg = "#50fa7b" }, { token = "$open5", fg = "#50fa7b" }, { token = "$open6", fg = "#50fa7b" }, { token = "$open7", fg = "#50fa7b" }, { token = "$open8", fg = "#50fa7b" }, { token = "$draft1", fg = "#6272a4" }, { token = "$draft2", fg = "#6272a4" }, { token = "$draft3", fg = "#6272a4" }, { token = "$draft4", fg = "#6272a4" }, { token = "$draft5", fg = "#6272a4" }, { token = "$draft6", fg = "#6272a4" }, { token = "$draft7", fg = "#6272a4" }, { token = "$draft8", fg = "#6272a4" }]]
 
 # [ui.sidebar.agents]
 # rows = [["state_icon", "workspace", "tab"], ["state_text", "agent"]]
@@ -89,10 +90,8 @@ type = "plugin_action"
 command = "ilai.spaces-control.cleanup"
 description = "Clean up worktrees"
 
-# >>> herdr-projects key (added by the herdr-projects plugin; `herdr-projects remove-extras` removes it)
 [[keys.command]]
-key = "prefix+a"
+key = "shift+alt+f"
 type = "plugin_action"
-command = "herdr-projects.open"
-description = "work board"
-# <<< herdr-projects key
+command = "ilai.pane-search.open"
+description = "Search panes across spaces (space, tab, agent, worktree, branch, recap, session)"

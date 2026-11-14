@@ -1,7 +1,8 @@
 #!/bin/sh
-# Claude Code hook (Stop, SessionEnd, UserPromptSubmit). Stores the turn's final assistant message per
-# Herdr pane and publishes its first line as the `recap` sidebar token. When that message ends with a
-# `Next:` line asking the user to act, it also publishes the `next` token until the user replies.
+# Claude Code hook (SessionStart, Stop, SessionEnd, UserPromptSubmit). Stores the turn's final assistant
+# message per Herdr pane and publishes its first line as the `recap` sidebar token. When that message ends
+# with a `Next:` line asking the user to act, it also publishes the `next` token until the user replies.
+# A fresh or /clear'ed session publishes the `empty` token until its first prompt.
 set -eu
 
 [ "${HERDR_ENV:-}" = "1" ] || exit 0
@@ -37,9 +38,17 @@ event = hook.get("hook_event_name") or ""
 
 # Background sessions run in the Claude daemon and inherit HERDR_PANE_ID from the pane that spawned it, so
 # only touch a pane whose live agent is this session (or none, once it has exited).
-pane = subprocess.run([herdr, "pane", "get", pane_id], capture_output=True, text=True, timeout=5, check=False)
-owner = ((json.loads(pane.stdout or "{}").get("result") or {}).get("pane") or {}).get("agent_session") or {}
-if owner.get("value") not in (None, hook.get("session_id")):
+def owner():
+    pane = subprocess.run([herdr, "pane", "get", pane_id], capture_output=True, text=True, timeout=5, check=False)
+    return (((json.loads(pane.stdout or "{}").get("result") or {}).get("pane") or {}).get("agent_session") or {}).get("value")
+
+# On SessionStart the herdr integration hook reports the new session id in parallel with this one.
+if event == "SessionStart":
+    for _ in range(20):
+        if owner() == hook.get("session_id"):
+            break
+        time.sleep(0.25)
+if owner() not in (None, hook.get("session_id")):
     raise SystemExit(0)
 
 def report(*args):
@@ -48,12 +57,23 @@ def report(*args):
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5, check=False,
     )
 
+if event == "SessionStart":
+    if hook.get("source") in ("startup", "clear"):
+        report("--token", "empty=∅", "--clear-token", "recap", "--clear-token", "next", "--seq", str(time.time_ns()))
+        try:
+            os.remove(state_file)
+        except FileNotFoundError:
+            pass
+    else:
+        report("--clear-token", "empty", "--seq", str(time.time_ns()))
+    raise SystemExit(0)
+
 if event == "UserPromptSubmit":
-    report("--clear-token", "next", "--seq", str(time.time_ns()))
+    report("--clear-token", "next", "--clear-token", "empty", "--seq", str(time.time_ns()))
     raise SystemExit(0)
 
 if event == "SessionEnd":
-    report("--clear-token", "recap", "--clear-token", "next")
+    report("--clear-token", "recap", "--clear-token", "next", "--clear-token", "empty")
     try:
         os.remove(state_file)
     except FileNotFoundError:
