@@ -4,3 +4,4 @@ lockfile = true
 [tools]
 helm = "latest"
 "ubi:tilt-dev/tilt" = "0.37.5"
+"npm:ccstatusline" = "latest"
