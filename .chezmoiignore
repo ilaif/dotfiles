@@ -10,6 +10,19 @@ claude-settings.json
 __pycache__/
 install.sh
 
+{{ if ne .chezmoi.os "darwin" }}
+Brewfile
+Library
+.testcontainers.properties
+.local/bin/claude-router
+.config/ghostty
+.config/claude-model-router
+.chrome-extensions
+.claude/hooks/herdr-notify.py
+.claude/hooks/*.png
+.agents/skills/cleanup-mac
+{{ end }}
+
 {{ if not (stat (joinPath .chezmoi.homeDir ".config/claude-model-router/config.json")) }}
 Library/LaunchAgents/dev.claude-model-router.plist
 {{ end }}

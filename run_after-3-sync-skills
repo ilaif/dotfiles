@@ -18,6 +18,9 @@ SKILLS=(
   "safishamsi/graphify graphify"
 )
 
+# Podium exposes npx only once the workspace toolchain is installed (see install.sh).
+command -v npx >/dev/null || exit 0
+
 LOCK="$HOME/.agents/.skill-lock.json"
 
 cd "$HOME"

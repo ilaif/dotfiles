@@ -1,5 +1,5 @@
 #!/bin/bash
-{{- if stat (joinPath .chezmoi.homeDir ".config/claude-model-router/config.json") }}
+{{- if and (eq .chezmoi.os "darwin") (stat (joinPath .chezmoi.homeDir ".config/claude-model-router/config.json")) }}
 # Restart claude-model-router when its code or LaunchAgent changes.
 # router.mjs {{ include "dot_config/claude-model-router/router.mjs" | sha256sum }}
 # plist {{ include "private_Library/LaunchAgents/dev.claude-model-router.plist.tmpl" | sha256sum }}

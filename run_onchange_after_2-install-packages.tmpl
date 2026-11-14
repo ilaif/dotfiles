@@ -1,3 +1,4 @@
+{{ if eq .chezmoi.os "darwin" -}}
 #!/bin/bash
 
 set -e
@@ -42,3 +43,4 @@ echox "* Import settings from personal-drive/dev/environment/raycast.export"
 echox "* Open RayCast and configure"
 echox "* Open 1Password and configure"
 echox "* Open VSCode and login to Settings & Sync"
+{{ end -}}

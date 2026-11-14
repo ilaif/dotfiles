@@ -7,8 +7,10 @@
 private="$HOME/.claude/settings.private.json"
 [ -f "$private" ] || private=/dev/null
 jq -j -s --argjson hooks '[
+{{- if eq .chezmoi.os "darwin" }}
   ["Stop", "python3 ~/.claude/hooks/herdr-notify.py"],
   ["Notification", "python3 ~/.claude/hooks/herdr-notify.py"],
+{{- end }}
   ["Stop", "bash '\''{{ $plugins }}/claude-recap/hook.sh'\''"],
   ["SessionEnd", "bash '\''{{ $plugins }}/claude-recap/hook.sh'\''"],
   ["UserPromptSubmit", "bash '\''{{ $plugins }}/claude-recap/hook.sh'\''"],

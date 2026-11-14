@@ -10,11 +10,19 @@ command -v herdr >/dev/null || exit 0
 
 INSTALLED="$(herdr plugin list)"
 
+# The terminal-input, spaces-control and pane-search plugins run python3. Without a system one (Podium),
+# the newest Python mise has installed becomes the global default.
+if ! python3 --version >/dev/null 2>&1 && command -v mise >/dev/null; then
+  python="$(mise ls --installed python --json | jq -r 'last.version // empty')"
+  [[ -n "$python" ]] && mise use -g "python@$python" >/dev/null
+fi
+
 # Own plugins are tracked in dot_config/herdr/plugins and linked in place.
-for plugin in claude-prs claude-recap dev-space spaces-control terminal-input; do
-  grep -q "local:$HOME/.config/herdr/plugins/$plugin\]" <<<"$INSTALLED" && continue
-  echox "Linking $plugin"
-  herdr plugin link "$HOME/.config/herdr/plugins/$plugin"
+for dir in "$HOME"/.config/herdr/plugins/*/herdr-plugin.toml; do
+  dir="${dir%/herdr-plugin.toml}"
+  grep -qF "local:$dir]" <<<"$INSTALLED" && continue
+  echox "Linking ${dir##*/}"
+  herdr plugin link "$dir"
 done
 
 # Third-party plugins.

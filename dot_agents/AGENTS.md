@@ -20,4 +20,4 @@ Set `model` on every Agent call by use case. Never rely on `CLAUDE_CODE_SUBAGENT
 - opus: design and planning, hard debugging, security-sensitive review
 - fable: only when the user asks for it
 
-@/Users/ilai/.codex/RTK.md
+@~/.codex/RTK.md

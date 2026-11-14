@@ -433,5 +433,5 @@ bind-key -T copy-mode-vi WheelUpPane send-keys -X scroll-up
 bind-key -T copy-mode-vi WheelDownPane send-keys -X scroll-down
 bind-key -T copy-mode WheelUpPane send-keys -X scroll-up
 bind-key -T copy-mode WheelDownPane send-keys -X scroll-down
-bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
-bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "command -v pbcopy >/dev/null && pbcopy || xclip -selection clipboard"
+bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "command -v pbcopy >/dev/null && pbcopy || xclip -selection clipboard"

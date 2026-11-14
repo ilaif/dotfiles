@@ -1,3 +1,4 @@
+{{ if eq .chezmoi.os "darwin" -}}
 #!/bin/bash
 
 set -e
@@ -26,3 +27,4 @@ cp "$ICON" "$DST/Contents/Resources/Claude.icns"
   "$DST/Contents/Info.plist"
 codesign --force --deep --sign - "$DST" 2>/dev/null
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DST"
+{{ end -}}

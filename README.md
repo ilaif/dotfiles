@@ -30,6 +30,8 @@ Review differences before applying them. Own skills live in `dot_agents/skills/`
 1. First things first, setup various mac settings: `make mac-setup`
 2. Bootstrap chezmoi to install all dotfiles and dev packages: `make bootstrap-chezmoi`
 
+Linux (Ubuntu, Podium workspaces): `./install.sh` installs chezmoi and applies this checkout. The source is OS-aware: `.chezmoiignore` and the run scripts skip macOS-only parts (brew, launchd, the notifier), so Mac and Linux run the same apply.
+
 ## To pull the latest changes and apply them
 
 ```sh
