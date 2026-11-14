@@ -33,7 +33,11 @@ done
 [[ ${#missing[@]} -eq 0 && -n "$(find "$STAMP" -mtime -7 2>/dev/null)" ]] && exit 0
 
 # Installs clone each source repo (~15s for a fresh home), so they run in the background and the apply returns.
-echox "Installing ${#missing[@]} and updating skills in the background (log: $LOG)"
+if [[ ${#missing[@]} -gt 0 ]]; then
+  echox "Installing ${#missing[@]} and updating skills in the background (log: $LOG)"
+else
+  echox "Updating skills in the background (log: $LOG)"
+fi
 mkdir -p "${LOG%/*}"
 cd "$HOME"
 nohup bash -c '
