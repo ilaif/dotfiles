@@ -84,7 +84,8 @@ refresh() {
        if $p.review != null and ($n.review // $p.review) != $p.review then "review \($p.review) → \($n.review)" else empty end]
     | select(length > 0) | "- \($p.repo)#\($p.number) (\($p.url)): \(join(", "))"' "$state_file" >>"$STATE_DIR/$session_id.notify"
   jq --argjson s "$states" '.prs[] |= (. + ($s[.url] // {})) | .refreshed_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
-  mv "$state_file.$$" "$state_file"
+  # A short write (disk full) leaves jq exiting 0 with an empty file; never let it replace the state.
+  if [ -s "$state_file.$$" ]; then mv "$state_file.$$" "$state_file"; else rm -f "$state_file.$$"; exit 1; fi
 }
 
 branch_pr_url() { (cd "$1" && gh pr view --json url --jq .url 2>/dev/null) || true; }
@@ -133,7 +134,7 @@ esac
 
 if [ ! -s "$state_file" ]; then
   jq -n --arg id "$session_id" '{session_id: $id, prs: []}' >"$state_file.$$"
-  mv "$state_file.$$" "$state_file"
+  if [ -s "$state_file.$$" ]; then mv "$state_file.$$" "$state_file"; else rm -f "$state_file.$$"; exit 1; fi
 fi
 jq --arg urls "$urls" --arg pane "$pane_id" --arg cwd "$cwd" '
   reduce ($urls | split("\n")[] | select(test("/pull/[0-9]+$"))) as $url (.;
@@ -141,7 +142,7 @@ jq --arg urls "$urls" --arg pane "$pane_id" --arg cwd "$cwd" '
       .prs += [{url: $url, repo: ($url | split("/")[4]), number: ($url | split("/")[6] | tonumber), added_ms: (now * 1000 | floor)}]
     end)
   | .pane_id = $pane | .cwd = $cwd | .updated_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
-mv "$state_file.$$" "$state_file"
+if [ -s "$state_file.$$" ]; then mv "$state_file.$$" "$state_file"; else rm -f "$state_file.$$"; exit 1; fi
 
 # SessionStart publishes even with no PRs: it clears tokens a previous session in this pane left behind
 # (its SessionEnd clear does not reliably land on /clear or resume).

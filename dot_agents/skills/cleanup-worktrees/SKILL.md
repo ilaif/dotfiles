@@ -15,7 +15,10 @@ Discover repositories under the root without following symlinks or descending in
 
 Record each linked worktree's path, HEAD, branch/detached state, locks and:
 - **Changes:** `git status --porcelain=v1 -z --untracked-files=all`.
-- **Ignored files:** `git ls-files --others --ignored --exclude-standard --directory -z`. Inspect paths, not secret contents. Classify each as **disposable** (regenerable: `node_modules`, `dist`, `.turbo`, `.husky/_`, `__pycache__`, `*.tsbuildinfo`) or **keep-worthy** (`.env`, local config, Terraform state, databases, rendered deliverables).
+- **Ignored files:** `git ls-files --others --ignored --exclude-standard --directory -z`. Inspect paths, not secret contents. Classify each as **disposable** or **keep-worthy** (`.env`, local config, Terraform state, databases, rendered deliverables). Disposable, with no question asked (the user pre-approved these):
+  - regenerable output: `node_modules`, `dist`, `.turbo`, `.husky/_`, `__pycache__`, `*.tsbuildinfo`, `.output/`, `.terraform/` provider and module caches, dbt `dbt_packages/` and `logs/`, `.test-budget.json`, forge `docs/changelog/merged-at.json`;
+  - skillshare caches: `.skillshare/`, `.agents/skills/.skillshare-manifest.json`;
+  - agent scratch: `.peer/`, `.autonomous-agent/`, `.proof/`, and forge's `.data/`.
 - **Registration:** existing, missing or broken. Separate out-of-root registrations; folder removal stays within scope.
 - **Idleness:** last commit age (`git log -1 --format=%ct`) and whether any tracked-tree file changed in the window (`find <path> -path '*/node_modules' -prune -o -path '*/.git' -prune -o -type f -newermt '-<N> days' -print -quit`).
 - **Unpushed commits:** `git rev-list --count HEAD --not --remotes`.

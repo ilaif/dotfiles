@@ -224,3 +224,6 @@ if [ -f "$HOME/.config/act-dx/completions/dx.zsh" ]; then
   source "$HOME/.config/act-dx/completions/dx.zsh"
 fi
 # <<< act-dx completion <<<
+
+# Claude through claude-model-router (Foundry models); plain `claude` stays first-party.
+alias claude-foundry='ANTHROPIC_BASE_URL=http://127.0.0.1:8787 claude'
