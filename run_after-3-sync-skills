@@ -15,7 +15,6 @@ SKILLS=(
   "zarazhangrui/frontend-slides frontend-slides"
   "Doist/todoist-cli todoist-cli"
   "cathrynlavery/diagram-design diagram-design"
-  "safishamsi/graphify graphify"
 )
 
 # Podium exposes npx only once the workspace toolchain is installed (see install.sh).
