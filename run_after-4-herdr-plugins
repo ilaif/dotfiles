@@ -25,8 +25,3 @@ for dir in "$HOME"/.config/herdr/plugins/*/herdr-plugin.toml; do
   herdr plugin link "$dir" >/dev/null
 done
 
-# Third-party plugins. herdr-file-viewer ships no Linux/aarch64 binary and would need Rust to build: macOS only.
-if [[ "$(uname)" == Darwin ]] && ! grep -q "github:smarzban/herdr-file-viewer" <<<"$INSTALLED"; then
-  echox "Installing herdr-file-viewer"
-  herdr plugin install --yes smarzban/herdr-file-viewer >/dev/null
-fi
