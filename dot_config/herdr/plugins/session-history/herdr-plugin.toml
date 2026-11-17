@@ -1,0 +1,22 @@
+id = "ilai.session-history"
+name = "Session History"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Back/forward through the agent sessions you focused, like browser history"
+platforms = ["macos", "linux"]
+
+[[actions]]
+id = "back"
+title = "Previous agent session"
+contexts = ["workspace", "global"]
+command = ["python3", "./history.py", "back"]
+
+[[actions]]
+id = "forward"
+title = "Next agent session"
+contexts = ["workspace", "global"]
+command = ["python3", "./history.py", "forward"]
+
+[[events]]
+on = "pane.focused"
+command = ["python3", "./history.py", "record"]
