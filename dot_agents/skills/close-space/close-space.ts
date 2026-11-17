@@ -57,7 +57,7 @@ const spaces = targets.map((w) => {
     status,
     dirty: status
       .split("\n")
-      .filter((line) => line.trim() && !/(^|\/)mise\.lock$/.test(line.slice(3)))
+      .filter((line) => line.trim() && !/\.lock$/.test(line.slice(3)))
       .join("\n"),
     unpushed: branch ? sh("git", "-C", wt!.repo_root, "log", "--oneline", branch, "--not", "--remotes") : "",
   };

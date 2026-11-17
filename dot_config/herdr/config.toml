@@ -85,3 +85,15 @@ key = "shift+alt+f"
 type = "plugin_action"
 command = "ilai.pane-search.open"
 description = "Search panes across spaces (space, tab, agent, worktree, branch, recap, session)"
+
+[[keys.command]]
+key = "shift+alt+z"
+type = "plugin_action"
+command = "ilai.session-history.back"
+description = "Previous agent session (back)"
+
+[[keys.command]]
+key = "shift+alt+u"
+type = "plugin_action"
+command = "ilai.session-history.forward"
+description = "Next agent session (forward)"
