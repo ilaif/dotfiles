@@ -35,8 +35,11 @@ DISABLE_MAGIC_FUNCTIONS=true
 ZSH_DISABLE_COMPFIX=true
 export HISTDB_FZF_DEFAULT_MODE=3
 export AWS_PAGER=
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
+if locale -a 2>/dev/null | grep -qiE "^en_US.utf-?8$"; then
+  export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+else
+  export LC_ALL=C.UTF-8 LANG=C.UTF-8
+fi
 
 plugins=(
   git
