@@ -139,7 +139,7 @@ fi
 jq --arg urls "$urls" --arg pane "$pane_id" --arg cwd "$cwd" '
   reduce ($urls | split("\n")[] | select(test("/pull/[0-9]+$"))) as $url (.;
     if any(.prs[]; .url == $url) then . else
-      .prs += [{url: $url, repo: ($url | split("/")[4]), number: ($url | split("/")[6] | tonumber), added_ms: (now * 1000 | floor)}]
+      .prs += [{url: $url, repo: ($url | split("/")[4] | if . == "infrastructure" then "infra" else . end), number: ($url | split("/")[6] | tonumber), added_ms: (now * 1000 | floor)}]
     end)
   | .pane_id = $pane | .cwd = $cwd | .updated_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
 if [ -s "$state_file.$$" ]; then mv "$state_file.$$" "$state_file"; else rm -f "$state_file.$$"; exit 1; fi

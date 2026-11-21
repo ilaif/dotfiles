@@ -1,14 +1,17 @@
-// Local ANTHROPIC_BASE_URL for Claude Code: requests whose model starts with a route's prefix go to
-// that route's origin through its authenticated HTTPS proxy tunnel; everything else goes to Anthropic.
+// Local HTTPS_PROXY for Claude Code: it decrypts api.anthropic.com only, sends Messages API requests whose
+// model starts with a route's prefix to that route's origin through its authenticated HTTPS proxy tunnel,
+// and passes everything else to Anthropic. Other hosts (claude.ai, Remote Control) are tunnelled untouched.
 // Config: ~/.config/claude-model-router/config.json (see README.md next to this file).
-import { execFile } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
+import net from "node:net";
 import { homedir } from "node:os";
 import tls from "node:tls";
 
-const config = JSON.parse(readFileSync(`${homedir()}/.config/claude-model-router/config.json`, "utf8"));
+const dir = `${homedir()}/.config/claude-model-router`;
+const config = JSON.parse(readFileSync(`${dir}/config.json`, "utf8"));
 const anthropic = new URL(config.anthropic ?? "https://api.anthropic.com");
 const directAgent = new https.Agent({ keepAlive: true });
 
@@ -73,6 +76,7 @@ const MODEL = /^\s*\{\s*"model"\s*:\s*"([^"]*)"/;
 
 function forward(req, res, head, target, agent) {
   const headers = { ...req.headers, host: target.host };
+  if (req.readableEnded) headers["content-length"] = head.length;
   const upstream = https.request(
     { host: target.hostname, port: Number(target.port || 443), method: req.method, path: req.url, headers, agent },
     (up) => {
@@ -89,14 +93,32 @@ function forward(req, res, head, target, agent) {
   req.pipe(upstream);
 }
 
-const server = http.createServer((req, res) => {
+// Body fields Claude Code sends only to first-party Anthropic; the gateway rejects them with a 400.
+const FIRST_PARTY_FIELDS = ["diagnostics", "safeguards", "thread"];
+
+function forwardToRoute(req, res, head, route) {
+  const chunks = [head];
+  const send = () => {
+    const body = JSON.parse(Buffer.concat(chunks));
+    for (const field of FIRST_PARTY_FIELDS) delete body[field];
+    forward(req, res, Buffer.from(JSON.stringify(body)), route.url, route.agent);
+  };
+  if (req.readableEnded) return send();
+  req.on("data", (chunk) => chunks.push(chunk));
+  req.on("end", send);
+  req.resume();
+}
+
+// Only the Messages API carries a model; every other path goes straight to Anthropic.
+function handle(req, res) {
+  if (req.method !== "POST" || !req.url.startsWith("/v1/messages")) return forward(req, res, Buffer.alloc(0), anthropic, directAgent);
   let head = Buffer.alloc(0);
   const route = () => {
     const model = MODEL.exec(head.toString("latin1"))?.[1];
     const match = model && routes.find((r) => model.startsWith(r.modelPrefix));
     req.off("data", onData);
     req.off("end", route);
-    if (match) forward(req, res, head, match.url, match.agent);
+    if (match) forwardToRoute(req, res, head, match);
     else forward(req, res, head, anthropic, directAgent);
   };
   const onData = (chunk) => {
@@ -108,6 +130,41 @@ const server = http.createServer((req, res) => {
   };
   req.on("data", onData);
   req.on("end", route);
+}
+
+// A local CA (trusted by Claude Code via NODE_EXTRA_CA_CERTS) and a leaf for the Anthropic host, made once.
+function anthropicCert() {
+  const tlsDir = `${dir}/tls`;
+  const openssl = (...args) => execFileSync("openssl", args, { cwd: tlsDir, stdio: "ignore" });
+  if (!existsSync(`${tlsDir}/leaf.pem`)) {
+    mkdirSync(tlsDir, { recursive: true, mode: 0o700 });
+    writeFileSync(`${tlsDir}/leaf.ext`, `subjectAltName=DNS:${anthropic.hostname}\nextendedKeyUsage=serverAuth\n`);
+    openssl("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem", "-days", "3650",
+      "-subj", "/CN=claude-model-router local CA", "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign");
+    openssl("req", "-new", "-newkey", "rsa:2048", "-nodes", "-keyout", "leaf.key", "-out", "leaf.csr", "-subj", `/CN=${anthropic.hostname}`);
+    openssl("x509", "-req", "-in", "leaf.csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-out", "leaf.pem", "-days", "825",
+      "-extfile", "leaf.ext");
+  }
+  return { key: readFileSync(`${tlsDir}/leaf.key`), cert: readFileSync(`${tlsDir}/leaf.pem`) };
+}
+
+const server = http.createServer(handle);
+const decrypted = http.createServer(handle);
+const secureContext = tls.createSecureContext(anthropicCert());
+
+server.on("connect", (req, client, head) => {
+  const [host, port] = req.url.split(":");
+  client.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+  if (head.length) client.unshift(head);
+  if (host === anthropic.hostname) {
+    decrypted.emit("connection", new tls.TLSSocket(client, { isServer: true, secureContext, ALPNProtocols: ["http/1.1"] }));
+    return;
+  }
+  const upstream = net.connect(Number(port || 443), host);
+  upstream.on("error", () => client.destroy());
+  client.on("error", () => upstream.destroy());
+  upstream.pipe(client);
+  client.pipe(upstream);
 });
 
 for (const route of routes) setInterval(() => refreshToken(route).catch((err) => console.error(err.message)), (route.refreshSeconds ?? 240) * 1000);

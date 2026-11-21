@@ -228,5 +228,5 @@ if [ -f "$HOME/.config/act-dx/completions/dx.zsh" ]; then
 fi
 # <<< act-dx completion <<<
 
-# Claude through claude-model-router (Foundry models); plain `claude` stays first-party.
-alias claude-foundry='ANTHROPIC_BASE_URL=http://127.0.0.1:8787 claude'
+# Claude through claude-model-router as HTTPS_PROXY (Foundry models, Remote Control kept); plain `claude` stays direct.
+alias claude-foundry='HTTPS_PROXY=http://127.0.0.1:8787 NO_PROXY=localhost,127.0.0.1,::1 NODE_EXTRA_CA_CERTS=$HOME/.config/claude-model-router/tls/ca.pem claude'

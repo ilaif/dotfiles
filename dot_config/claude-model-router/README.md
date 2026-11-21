@@ -1,8 +1,10 @@
 # claude-model-router
 
-A local `ANTHROPIC_BASE_URL` for Claude Code that adds extra models without slowing down Claude ones.
+A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing down Claude ones or losing Remote Control.
 
-- Requests whose `model` starts with a route's `modelPrefix` go to that route's `origin`, through an HTTPS proxy tunnel authenticated with `Proxy-Authorization` from `tokenCommand` (refreshed in the background).
+- Claude Code keeps talking to `api.anthropic.com` (no `ANTHROPIC_BASE_URL`), so Remote Control and other first-party features stay on.
+- The router decrypts `api.anthropic.com` only, with a local CA it creates in `tls/` on first start and Claude Code trusts via `NODE_EXTRA_CA_CERTS`. Other hosts (claude.ai, the Remote Control bridge, OAuth) are tunnelled untouched.
+- `POST /v1/messages*` whose `model` starts with a route's `modelPrefix` goes to that route's `origin`, through an HTTPS proxy tunnel authenticated with `Proxy-Authorization` from `tokenCommand` (refreshed in the background). First-party-only body fields the gateway rejects (`diagnostics`, `safeguards`, `thread`) are dropped.
 - Everything else goes straight to `https://api.anthropic.com` with your normal Claude login.
 - Node only, no dependencies; runs as the LaunchAgent `dev.claude-model-router` on `127.0.0.1:8787`.
 
@@ -30,7 +32,7 @@ A local `ANTHROPIC_BASE_URL` for Claude Code that adds extra models without slow
 
    ```json
    {
-     "env": { "ANTHROPIC_BASE_URL": "http://127.0.0.1:8787", "ENABLE_TOOL_SEARCH": "true" },
+     "env": { "ENABLE_TOOL_SEARCH": "true" },
      "modelPicker": {
        "replaceBuiltInOptions": false,
        "options": [{ "model": "my-gateway/model-a", "label": "Gateway — Model A" }]
@@ -42,4 +44,6 @@ A local `ANTHROPIC_BASE_URL` for Claude Code that adds extra models without slow
 
 ## Operate
 
-`claude-router status|restart|start|stop|logs|off|on`. `off` points new Claude sessions straight at Anthropic (for when the router is down); `on` points them back.
+`claude-foundry` runs one session through the router (sets `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`). For every session: `claude-router on`; `off` points new sessions straight at Anthropic (for when the router is down).
+
+`claude-router status|restart|start|stop|logs|off|on`.
