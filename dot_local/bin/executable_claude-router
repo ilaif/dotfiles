@@ -11,6 +11,7 @@ url=http://127.0.0.1:8787
 
 set_env() { # $1 = jq filter applied to both settings files
   for f in "$private" "$settings"; do
+    [[ -f $f ]] || continue
     jq --indent 2 "$1" "$f" >"$f.tmp" && cat "$f.tmp" >"$f" && rm "$f.tmp"
   done
 }
