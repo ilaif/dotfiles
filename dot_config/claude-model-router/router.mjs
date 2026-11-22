@@ -157,6 +157,7 @@ function forwardWithSubscriptionFallback(req, res, head, model) {
       const reset = subscriptionLimitReset(up.headers);
       if (reset) {
         subscriptionResets.set(credential, reset);
+        writeFileSync(`${dir}/fallback-until`, String(reset));
         console.log(`subscription limit reached; Copilot until ${new Date(reset).toISOString()}`);
       }
       const refused = up.statusCode === 429 && up.headers["anthropic-ratelimit-unified-status"] === "rejected";

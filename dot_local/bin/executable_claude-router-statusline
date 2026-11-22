@@ -1,0 +1,10 @@
+#!/bin/sh
+# ccstatusline widget: in claude-copilot sessions, whether claude-model-router is serving them from Copilot.
+case "${ANTHROPIC_CUSTOM_HEADERS:-}" in *x-claude-router-fallback*) ;; *) exit 0 ;; esac
+until_ms=$(cat "$HOME/.config/claude-model-router/fallback-until" 2>/dev/null || echo 0)
+now_ms=$(($(date +%s) * 1000))
+if [ "$until_ms" -gt "$now_ms" ]; then
+  printf '\033[35m⇄ Copilot until %s\033[0m' "$(date -r $((until_ms / 1000)) +%H:%M)"
+else
+  printf '\033[32m⇄ Claude\033[0m'
+fi

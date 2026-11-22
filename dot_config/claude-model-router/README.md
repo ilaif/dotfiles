@@ -73,7 +73,7 @@ With a top-level `subscriptionFallback` in `config.json`, Claude subscription re
 - a 5h or 7d window at `preemptAt` utilization or above: Copilot until that window's reset;
 - `anthropic-ratelimit-unified-status: rejected` (over the limit): Copilot until `anthropic-ratelimit-unified-reset`. A refused request (429) is retried on Copilot in the same call; one already served as extra usage (200) is delivered, and the next request moves.
 
-Fallback requests drop Claude thinking blocks from the history, since Copilot rejects their signatures. Ordinary 429s, auth errors, API-key requests and models missing from `models` pass through unchanged. State is in memory: a router restart re-checks Claude on the next request. Watch it with `claude-router logs` (`subscription fallback: <model> -> <model>`).
+Fallback requests drop Claude thinking blocks from the history, since Copilot rejects their signatures. Ordinary 429s, auth errors, API-key requests and models missing from `models` pass through unchanged. State is in memory: a router restart re-checks Claude on the next request. The router writes the reset time to `fallback-until`; the ccstatusline widget `claude-router-statusline` shows `⇄ Claude` or `⇄ Copilot until HH:MM` in `claude-copilot` sessions. Watch it with `claude-router logs` (`subscription fallback: <model> -> <model>`).
 
 ```json
 "subscriptionFallback": {
