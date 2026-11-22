@@ -50,6 +50,12 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing dow
 
 ## GitHub Copilot
 
+One-line install on a Mac (no chezmoi needed; keeps an existing `config.json`, signs in to Copilot, starts the router):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-copilot-install.sh | bash
+```
+
 Quick start: `cp ~/.config/claude-model-router/config.example.json ~/.config/claude-model-router/config.json`, authenticate (below), `chezmoi apply`, then `claude-router restart`.
 
 To pick Copilot models in `/model`, add rows to `modelPicker.options` in `~/.claude/settings.json` (or `settings.private.json`):

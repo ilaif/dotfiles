@@ -8,4 +8,4 @@ export NODE_EXTRA_CA_CERTS="$HOME/.config/claude-model-router/tls/ca.pem"
 export ANTHROPIC_CUSTOM_HEADERS="x-claude-router-fallback: 1"
 export CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1
 unset ANTHROPIC_BASE_URL ANTHROPIC_MODEL CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY
-exec "$HOME/.local/bin/claude" "$@"
+exec claude "$@"

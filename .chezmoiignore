@@ -26,3 +26,5 @@ Library
 {{ if not (stat (joinPath .chezmoi.homeDir ".config/claude-model-router/config.json")) }}
 Library/LaunchAgents/dev.claude-model-router.plist
 {{ end }}
+
+claude-copilot-install.sh
