@@ -1,5 +1,5 @@
 #!/bin/sh
-# ccstatusline widget: in claude-copilot sessions, whether claude-model-router is serving them from Copilot.
+# ccstatusline widget: in claude-act sessions, whether claude-model-router is serving them from Copilot.
 case "${ANTHROPIC_CUSTOM_HEADERS:-}" in *x-claude-router-fallback*) ;; *) exit 0 ;; esac
 until_ms=$(cat "$HOME/.config/claude-model-router/fallback-until" 2>/dev/null || echo 0)
 now_ms=$(($(date +%s) * 1000))

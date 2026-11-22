@@ -44,7 +44,7 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing dow
 
 ## Operate
 
-`claude-foundry` runs one session through the router (sets `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`). On the Mac, `claude` is an alias for `claude-copilot` (subscription with the Copilot fallback). For every session, including Claude Code in the Desktop app: `claude-router on` writes the proxy and the Copilot fallback opt-in into the `env` of `~/.claude/settings.json`; `off` removes them and points new sessions straight at Anthropic (for when the router is down).
+`claude-act` runs one session through the router: every route's models in `/model`, and the Copilot subscription fallback (`claude-copilot` is an older name for it). On the Mac, `claude` is an alias for `claude-act`. For every session, including Claude Code in the Desktop app: `claude-router on` writes the proxy and the Copilot fallback opt-in into the `env` of `~/.claude/settings.json`; `off` removes them and points new sessions straight at Anthropic (for when the router is down).
 
 `claude-router status|restart|start|stop|logs|off|on`.
 
@@ -66,7 +66,7 @@ To pick Copilot models in `/model`, add rows to `modelPicker.options` in `~/.cla
 { "model": "copilot/claude-haiku-5.5", "label": "GitHub Copilot — Haiku 5.5", "behavesAs": "claude-haiku-5-5" }
 ```
 
-`claude-copilot` starts Claude Code on your saved `/model` (e.g. Opus) with the subscription fallback below turned on for that session. Pick a `copilot/…` row in `/model` to use Copilot from the start.
+`claude-act` starts Claude Code on your saved `/model` (e.g. Opus) with the subscription fallback below turned on for that session. Pick a `copilot/…` row in `/model` to use Copilot from the start.
 
 Authenticate with `npm exec --yes --package=copilot-api@0.7.0 -- copilot-api auth`. It saves the GitHub credential locally with mode 0600; never track that file. `claude-copilot-token` exchanges it for a short-lived Copilot token.
 
@@ -74,12 +74,12 @@ Add a route to the untracked router config with `modelPrefix: "copilot/"`, `orig
 
 ### Subscription fallback
 
-With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests from sessions that send `x-claude-router-fallback` (`claude-copilot` sets it through `ANTHROPIC_CUSTOM_HEADERS`; the router strips it) move to the Copilot route before extra (on-demand) usage starts, and return after the limit resets. Each response's `anthropic-ratelimit-unified-*` headers decide it:
+With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests from sessions that send `x-claude-router-fallback` (`claude-act` sets it through `ANTHROPIC_CUSTOM_HEADERS`; the router strips it) move to the Copilot route before extra (on-demand) usage starts, and return after the limit resets. Each response's `anthropic-ratelimit-unified-*` headers decide it:
 
 - a 5h or 7d window at `preemptAt` utilization or above: Copilot until that window's reset;
 - `anthropic-ratelimit-unified-status: rejected` (over the limit): Copilot until `anthropic-ratelimit-unified-reset`. A refused request (429) is retried on Copilot in the same call; one already served as extra usage (200) is delivered, and the next request moves.
 
-Fallback requests drop Claude thinking blocks from the history, since Copilot rejects their signatures. Interactive Claude Code keeps the conversation in a server-side thread and sends only new messages (`thread: continue`); Copilot has no copy, so the fallback answers those with `thread_unsupported_request`, and Claude Code resends the turn with the whole history and stays stateless on that model for the session. Ordinary 429s, auth errors, API-key requests and models missing from `models` pass through unchanged. State is in memory: a router restart re-checks Claude on the next request and clears `fallback-until`. The router writes the reset time to `fallback-until`; the ccstatusline widget `claude-router-statusline` shows `⇄ Claude` or `⇄ Copilot until HH:MM` in `claude-copilot` sessions. Watch it with `claude-router logs` (`subscription fallback: <model> -> <model>`).
+Fallback requests drop Claude thinking blocks from the history, since Copilot rejects their signatures. Interactive Claude Code keeps the conversation in a server-side thread and sends only new messages (`thread: continue`); Copilot has no copy, so the fallback answers those with `thread_unsupported_request`, and Claude Code resends the turn with the whole history and stays stateless on that model for the session. Ordinary 429s, auth errors, API-key requests and models missing from `models` pass through unchanged. State is in memory: a router restart re-checks Claude on the next request and clears `fallback-until`. The router writes the reset time to `fallback-until`; the ccstatusline widget `claude-router-statusline` shows `⇄ Claude` or `⇄ Copilot until HH:MM` in `claude-act` sessions. Watch it with `claude-router logs` (`subscription fallback: <model> -> <model>`).
 
 ```json
 "subscriptionFallback": {

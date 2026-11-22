@@ -104,7 +104,7 @@ function forward(req, res, head, target, agent, route, onResponse) {
 
 // Body fields Claude Code sends only to first-party Anthropic; the gateway rejects them with a 400.
 const FIRST_PARTY_FIELDS = ["diagnostics", "safeguards", "thread"];
-// Sessions opt in to the subscription fallback with this request header (claude-copilot sets it).
+// Sessions opt in to the subscription fallback with this request header (claude-act sets it).
 const FALLBACK_HEADER = "x-claude-router-fallback";
 
 function forwardToRoute(req, res, head, route) {

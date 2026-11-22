@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-line install of claude-copilot (Claude subscription with a GitHub Copilot fallback) on macOS:
+# One-line install of claude-act (Claude subscription with a GitHub Copilot fallback) on macOS:
 #   curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-copilot-install.sh | bash
 set -euo pipefail
 
@@ -20,10 +20,11 @@ mkdir -p "$dir" "$bin" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 for f in router.mjs config.example.json README.md; do
   curl -fsSL "$raw/dot_config/claude-model-router/$f" -o "$dir/$f"
 done
-for f in claude-copilot claude-copilot-token claude-router claude-router-statusline; do
+for f in claude-act claude-copilot-token claude-router claude-router-statusline; do
   curl -fsSL "$raw/dot_local/bin/executable_$f" -o "$bin/$f"
   chmod +x "$bin/$f"
 done
+ln -sf claude-act "$bin/claude-copilot"
 
 # Keep an existing config (other routes); add only the Copilot route and the fallback when missing.
 if [[ -f $dir/config.json ]]; then
@@ -65,13 +66,13 @@ for _ in $(seq 20); do
 done
 
 echo "Checking a request through the router..."
-"$bin/claude-copilot" -p "Reply with OK" </dev/null
+"$bin/claude-act" -p "Reply with OK" </dev/null
 cat <<DONE
 
-Installed. Start sessions with: claude-copilot
+Installed. Start sessions with: claude-act
 - Opus (your saved /model) runs on the Claude subscription and moves to Copilot before extra usage starts.
 - Watch routing: claude-router logs
-- Optional: alias claude=claude-copilot in your shell rc
+- Optional: alias claude=claude-act in your shell rc
 - Optional status line: a ccstatusline custom-command widget running $bin/claude-router-statusline
 Docs: $dir/README.md
 DONE
