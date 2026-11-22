@@ -52,6 +52,14 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing dow
 
 Quick start: `cp ~/.config/claude-model-router/config.example.json ~/.config/claude-model-router/config.json`, authenticate (below), `chezmoi apply`, then `claude-router restart`.
 
+To pick Copilot models in `/model`, add rows to `modelPicker.options` in `~/.claude/settings.json` (or `settings.private.json`):
+
+```json
+{ "model": "copilot/claude-opus-5.5", "label": "GitHub Copilot — Opus 5.5", "behavesAs": "claude-opus-5-5" },
+{ "model": "copilot/claude-sonnet-5.5", "label": "GitHub Copilot — Sonnet 5.5", "behavesAs": "claude-sonnet-5-5" },
+{ "model": "copilot/claude-haiku-5.5", "label": "GitHub Copilot — Haiku 5.5", "behavesAs": "claude-haiku-5-5" }
+```
+
 `claude-copilot` starts Claude Code with Copilot-routed model aliases, without changing Foundry sessions. Set `CLAUDE_COPILOT_MODEL` to a model ID available to your Copilot account to choose another model.
 
 Authenticate with `npm exec --yes --package=copilot-api@0.7.0 -- copilot-api auth`. It saves the GitHub credential locally with mode 0600; never track that file. `claude-copilot-token` exchanges it for a short-lived Copilot token.
