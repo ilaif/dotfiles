@@ -44,7 +44,7 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing dow
 
 ## Operate
 
-`claude-foundry` runs one session through the router (sets `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`). On the Mac, `claude` is the same alias. For every session: `claude-router on`; `off` points new sessions straight at Anthropic (for when the router is down).
+`claude-foundry` runs one session through the router (sets `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`). On the Mac, `claude` is an alias for `claude-copilot` (subscription with the Copilot fallback). For every session: `claude-router on`; `off` points new sessions straight at Anthropic (for when the router is down).
 
 `claude-router status|restart|start|stop|logs|off|on`.
 
