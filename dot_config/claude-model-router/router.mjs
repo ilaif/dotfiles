@@ -4,7 +4,7 @@
 // Config: ~/.config/claude-model-router/config.json (see README.md next to this file).
 import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -138,12 +138,22 @@ async function sendToRoute(req, res, raw, route) {
 const subscriptionFallback = config.subscriptionFallback;
 const fallbackRoute = subscriptionFallback && routes.find((route) => route.modelPrefix === subscriptionFallback.routePrefix);
 const subscriptionResets = new Map();
+// The switch state lives in memory, so a restart starts on Claude; drop the status line's copy from the last run.
+rmSync(`${dir}/fallback-until`, { force: true });
 
 function forwardWithSubscriptionFallback(req, res, head, model) {
   const credential = createHash("sha256").update(req.headers.authorization ?? "").digest("hex");
   readBody(req, head, (raw) => {
     const useCopilot = () => {
       const body = JSON.parse(raw);
+      // A server-side thread continue carries only the new messages; Copilot has no copy of the rest. This error makes
+      // Claude Code resend the turn with the whole history and stay stateless on this model for the session.
+      if (body.thread?.type === "continue") {
+        console.log(`subscription fallback: ${model} thread continue -> asked for a stateless resend`);
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: "thread_unsupported_request: the Copilot fallback has no server-side thread", details: { error_code: "thread_unsupported_request" } } }));
+        return;
+      }
       body.model = subscriptionFallback.models[model];
       // Copilot rejects thinking signatures minted on the Claude subscription account.
       for (const message of body.messages) {
