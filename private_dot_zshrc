@@ -236,3 +236,6 @@ if [[ $OSTYPE == darwin* ]]; then
   alias claude-foundry='HTTPS_PROXY=http://127.0.0.1:8787 NO_PROXY=localhost,127.0.0.1,::1 NODE_EXTRA_CA_CERTS=$HOME/.config/claude-model-router/tls/ca.pem command claude'
   alias claude=claude-copilot
 fi
+
+# Codex: run configured hooks without the per-change trust review screen.
+alias codex='codex --dangerously-bypass-hook-trust'
