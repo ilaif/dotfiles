@@ -73,8 +73,12 @@ refresh() {
     | "query { \(join(" ")) } fragment f on PullRequest { state isDraft mergeStateStatus author { login }
       latestReviews(first: 20) { nodes { author { login } authorAssociation state } }
       reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } } } } }"')"
-  states="$(gh api graphql -f query="$query" | jq -c -L "$PLUGIN_DIR" --argjson open "$open" 'include "review";
-    [.data | to_entries[] | (.key[1:] | tonumber) as $i | .value.pullRequest
+  # A URL GitHub can't resolve (e.g. an example link in command output) fails the whole query with partial
+  # data; keep the data and drop that PR below.
+  response="$(gh api graphql -f query="$query" 2>/dev/null || true)"
+  gone="$(printf '%s' "$response" | jq -c --argjson open "$open" '[.data | to_entries[] | select(.value.pullRequest == null) | $open[.key[1:] | tonumber]]')"
+  states="$(printf '%s' "$response" | jq -c -L "$PLUGIN_DIR" --argjson open "$open" 'include "review";
+    [.data | to_entries[] | select(.value.pullRequest != null) | (.key[1:] | tonumber) as $i | .value.pullRequest
       | .latestReviews |= .nodes | .reviewRequests |= [.nodes[].requestedReviewer]
       | {($open[$i]): {state: (if .isDraft and .state == "OPEN" then "DRAFT" else .state end), review: review_state}}]
     | add // {}')"
@@ -83,7 +87,8 @@ refresh() {
     | [if $p.state != null and ($n.state // $p.state) != $p.state then "\($p.state) → \($n.state)" else empty end,
        if $p.review != null and ($n.review // $p.review) != $p.review then "review \($p.review) → \($n.review)" else empty end]
     | select(length > 0) | "- \($p.repo)#\($p.number) (\($p.url)): \(join(", "))"' "$state_file" >>"$STATE_DIR/$session_id.notify"
-  jq --argjson s "$states" '.prs[] |= (. + ($s[.url] // {})) | .refreshed_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
+  jq --argjson s "$states" --argjson gone "$gone" '.prs |= map(select(.url as $u | $gone | index($u) | not))
+    | .prs[] |= (. + ($s[.url] // {})) | .refreshed_ms = (now * 1000 | floor)' "$state_file" >"$state_file.$$"
   # A short write (disk full) leaves jq exiting 0 with an empty file; never let it replace the state.
   if [ -s "$state_file.$$" ]; then mv "$state_file.$$" "$state_file"; else rm -f "$state_file.$$"; exit 1; fi
 }
