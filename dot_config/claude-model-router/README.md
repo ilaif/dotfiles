@@ -44,7 +44,7 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing dow
 
 ## Operate
 
-`claude-foundry` runs one session through the router (sets `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`). On the Mac, `claude` is the same alias, so your saved `/model` (e.g. Opus) runs on the subscription with the Copilot fallback. For every session: `claude-router on`; `off` points new sessions straight at Anthropic (for when the router is down).
+`claude-foundry` runs one session through the router (sets `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`). On the Mac, `claude` is the same alias. For every session: `claude-router on`; `off` points new sessions straight at Anthropic (for when the router is down).
 
 `claude-router status|restart|start|stop|logs|off|on`.
 
@@ -60,7 +60,7 @@ To pick Copilot models in `/model`, add rows to `modelPicker.options` in `~/.cla
 { "model": "copilot/claude-haiku-5.5", "label": "GitHub Copilot — Haiku 5.5", "behavesAs": "claude-haiku-5-5" }
 ```
 
-`claude-copilot` starts Claude Code with Copilot-routed model aliases, without changing Foundry sessions. Set `CLAUDE_COPILOT_MODEL` to a model ID available to your Copilot account to choose another model.
+`claude-copilot` starts Claude Code on your saved `/model` (e.g. Opus) with the subscription fallback below turned on for that session. Pick a `copilot/…` row in `/model` to use Copilot from the start.
 
 Authenticate with `npm exec --yes --package=copilot-api@0.7.0 -- copilot-api auth`. It saves the GitHub credential locally with mode 0600; never track that file. `claude-copilot-token` exchanges it for a short-lived Copilot token.
 
@@ -68,7 +68,7 @@ Add a route to the untracked router config with `modelPrefix: "copilot/"`, `orig
 
 ### Subscription fallback
 
-With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests move to the Copilot route before extra (on-demand) usage starts, and return after the limit resets. Each response's `anthropic-ratelimit-unified-*` headers decide it:
+With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests from sessions that send `x-claude-router-fallback` (`claude-copilot` sets it through `ANTHROPIC_CUSTOM_HEADERS`; the router strips it) move to the Copilot route before extra (on-demand) usage starts, and return after the limit resets. Each response's `anthropic-ratelimit-unified-*` headers decide it:
 
 - a 5h or 7d window at `preemptAt` utilization or above: Copilot until that window's reset;
 - `anthropic-ratelimit-unified-status: rejected` (over the limit): Copilot until `anthropic-ratelimit-unified-reset`. A refused request (429) is retried on Copilot in the same call; one already served as extra usage (200) is delivered, and the next request moves.

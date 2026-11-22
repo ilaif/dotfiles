@@ -77,6 +77,7 @@ const MODEL = /^\s*\{\s*"model"\s*:\s*"([^"]*)"/;
 
 function forward(req, res, head, target, agent, route, onResponse) {
   const headers = { ...req.headers, host: target.host };
+  delete headers[FALLBACK_HEADER];
   if (route?.authMode === "bearer") {
     delete headers["x-api-key"];
     delete headers.cookie;
@@ -103,6 +104,8 @@ function forward(req, res, head, target, agent, route, onResponse) {
 
 // Body fields Claude Code sends only to first-party Anthropic; the gateway rejects them with a 400.
 const FIRST_PARTY_FIELDS = ["diagnostics", "safeguards", "thread"];
+// Sessions opt in to the subscription fallback with this request header (claude-copilot sets it).
+const FALLBACK_HEADER = "x-claude-router-fallback";
 
 function forwardToRoute(req, res, head, route) {
   readBody(req, head, (body) => sendToRoute(req, res, body, route));
@@ -192,7 +195,7 @@ function handle(req, res) {
     req.off("data", onData);
     req.off("end", route);
     if (match) forwardToRoute(req, res, head, match);
-    else if (req.url.split("?")[0] === "/v1/messages" && !req.headers["x-api-key"] && req.headers.authorization?.startsWith("Bearer ") && subscriptionFallback?.models[model]) forwardWithSubscriptionFallback(req, res, head, model);
+    else if (req.url.split("?")[0] === "/v1/messages" && !req.headers["x-api-key"] && req.headers.authorization?.startsWith("Bearer ") && req.headers[FALLBACK_HEADER] && subscriptionFallback?.models[model]) forwardWithSubscriptionFallback(req, res, head, model);
     else forward(req, res, head, anthropic, directAgent);
   };
   const onData = (chunk) => {
