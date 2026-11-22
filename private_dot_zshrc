@@ -229,9 +229,9 @@ fi
 # <<< act-dx completion <<<
 
 # Claude through claude-model-router as HTTPS_PROXY (Remote Control kept); `\claude` goes direct.
-# `claude` defaults to GitHub Copilot models (claude-copilot); `claude-foundry` keeps the subscription default.
+# Subscription models fall back to Copilot near the limit; `claude-copilot` uses Copilot from the start.
 # The router runs only on the Mac; Podium workspaces sync this file and must reach Anthropic directly.
 if [[ $OSTYPE == darwin* ]]; then
-  alias claude-foundry='HTTPS_PROXY=http://127.0.0.1:8787 NO_PROXY=localhost,127.0.0.1,::1 NODE_EXTRA_CA_CERTS=$HOME/.config/claude-model-router/tls/ca.pem claude'
-  alias claude=claude-copilot
+  alias claude='HTTPS_PROXY=http://127.0.0.1:8787 NO_PROXY=localhost,127.0.0.1,::1 NODE_EXTRA_CA_CERTS=$HOME/.config/claude-model-router/tls/ca.pem claude'
+  alias claude-foundry=claude
 fi
