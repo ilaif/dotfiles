@@ -231,7 +231,7 @@ fi
 # Claude through claude-model-router as HTTPS_PROXY (Remote Control kept); `\claude` goes direct.
 # `claude` runs claude-copilot: subscription models, moved to Copilot before extra usage starts.
 # `claude-foundry` is the router without the fallback.
-# The router runs only on the Mac; Podium workspaces sync this file and must reach Anthropic directly.
+# The router runs only on the Mac; remote dev workspaces sync this file and must reach Anthropic directly.
 if [[ $OSTYPE == darwin* ]]; then
   alias claude-foundry='HTTPS_PROXY=http://127.0.0.1:8787 NO_PROXY=localhost,127.0.0.1,::1 NODE_EXTRA_CA_CERTS=$HOME/.config/claude-model-router/tls/ca.pem command claude'
   alias claude=claude-copilot
