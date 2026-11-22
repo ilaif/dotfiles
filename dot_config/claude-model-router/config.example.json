@@ -1,0 +1,36 @@
+{
+  "port": 8787,
+  "subscriptionFallback": {
+    "routePrefix": "copilot/",
+    "preemptAt": 0.98,
+    "models": {
+      "claude-opus-5-5": "claude-opus-5.5",
+      "claude-opus-5": "claude-opus-5",
+      "claude-sonnet-5-5": "claude-sonnet-5.5",
+      "claude-sonnet-5": "claude-sonnet-5",
+      "claude-haiku-5-5": "claude-haiku-5.5",
+      "claude-haiku-4-5-20251001": "claude-haiku-4.5"
+    }
+  },
+  "routes": [
+    {
+      "modelPrefix": "copilot/",
+      "origin": "https://api.githubcopilot.com",
+      "authMode": "bearer",
+      "stripModelPrefix": true,
+      "stripCacheScope": true,
+      "disableAdvisor": true,
+      "tokenCommand": "$HOME/.local/bin/claude-copilot-token",
+      "refreshSeconds": 240,
+      "headers": {
+        "copilot-integration-id": "vscode-chat",
+        "editor-version": "vscode/1.104.3",
+        "editor-plugin-version": "copilot-chat/0.26.7",
+        "user-agent": "GitHubCopilotChat/0.26.7",
+        "openai-intent": "messages-proxy",
+        "x-interaction-type": "messages-proxy",
+        "x-github-api-version": "2026-06-01"
+      }
+    }
+  ]
+}

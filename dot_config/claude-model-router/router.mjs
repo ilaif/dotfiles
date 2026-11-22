@@ -3,6 +3,7 @@
 // and passes everything else to Anthropic. Other hosts (claude.ai, Remote Control) are tunnelled untouched.
 // Config: ~/.config/claude-model-router/config.json (see README.md next to this file).
 import { execFile, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
@@ -65,7 +66,7 @@ function tunnelAgent(route) {
 
 const routes = config.routes.map((route) => {
   const r = { ...route, url: new URL(route.origin) };
-  r.agent = tunnelAgent(r);
+  r.agent = r.authMode === "bearer" ? directAgent : tunnelAgent(r);
   r.ready = refreshToken(r);
   r.ready.catch((err) => console.error(err.message));
   return r;
@@ -74,12 +75,19 @@ const routes = config.routes.map((route) => {
 // Claude Code sends "model" as the body's first key, so the route is known from the first bytes.
 const MODEL = /^\s*\{\s*"model"\s*:\s*"([^"]*)"/;
 
-function forward(req, res, head, target, agent) {
+function forward(req, res, head, target, agent, route, onResponse) {
   const headers = { ...req.headers, host: target.host };
+  if (route?.authMode === "bearer") {
+    delete headers["x-api-key"];
+    delete headers.cookie;
+    headers.authorization = route.token;
+    Object.assign(headers, route.headers);
+  }
   if (req.readableEnded) headers["content-length"] = head.length;
   const upstream = https.request(
     { host: target.hostname, port: Number(target.port || 443), method: req.method, path: req.url, headers, agent },
     (up) => {
+      if (onResponse) return onResponse(up);
       res.writeHead(up.statusCode, up.headers);
       up.pipe(res);
     },
@@ -97,16 +105,81 @@ function forward(req, res, head, target, agent) {
 const FIRST_PARTY_FIELDS = ["diagnostics", "safeguards", "thread"];
 
 function forwardToRoute(req, res, head, route) {
+  readBody(req, head, (body) => sendToRoute(req, res, body, route));
+}
+
+function readBody(req, head, send) {
   const chunks = [head];
-  const send = () => {
-    const body = JSON.parse(Buffer.concat(chunks));
-    for (const field of FIRST_PARTY_FIELDS) delete body[field];
-    forward(req, res, Buffer.from(JSON.stringify(body)), route.url, route.agent);
-  };
-  if (req.readableEnded) return send();
+  if (req.readableEnded) return send(head);
   req.on("data", (chunk) => chunks.push(chunk));
-  req.on("end", send);
+  req.on("end", () => send(Buffer.concat(chunks)));
   req.resume();
+}
+
+async function sendToRoute(req, res, raw, route) {
+  const body = JSON.parse(raw);
+  for (const field of FIRST_PARTY_FIELDS) delete body[field];
+  if (route.stripModelPrefix && body.model.startsWith(route.modelPrefix)) body.model = body.model.slice(route.modelPrefix.length);
+  if (route.stripCacheScope) stripCacheScope(body);
+  if (route.disableAdvisor) body.tools = body.tools?.filter((tool) => !tool.type?.startsWith("advisor_"));
+  try {
+    await route.ready;
+  } catch (err) {
+    res.writeHead(502, { "content-type": "application/json" });
+    res.end(JSON.stringify({ type: "error", error: { type: "api_error", message: err.message } }));
+    return;
+  }
+  forward(req, res, Buffer.from(JSON.stringify(body)), route.url, route.agent, route);
+}
+
+const subscriptionFallback = config.subscriptionFallback;
+const fallbackRoute = subscriptionFallback && routes.find((route) => route.modelPrefix === subscriptionFallback.routePrefix);
+const subscriptionResets = new Map();
+
+function forwardWithSubscriptionFallback(req, res, head, model) {
+  const credential = createHash("sha256").update(req.headers.authorization ?? "").digest("hex");
+  readBody(req, head, (raw) => {
+    const useCopilot = () => {
+      const body = JSON.parse(raw);
+      body.model = subscriptionFallback.models[model];
+      // Copilot rejects thinking signatures minted on the Claude subscription account.
+      for (const message of body.messages) {
+        if (Array.isArray(message.content)) message.content = message.content.filter((block) => !["thinking", "redacted_thinking"].includes(block.type));
+      }
+      console.log(`subscription fallback: ${model} -> ${body.model}`);
+      sendToRoute(req, res, Buffer.from(JSON.stringify(body)), fallbackRoute);
+    };
+    if (Date.now() < subscriptionResets.get(credential)) return useCopilot();
+    forward(req, res, raw, anthropic, directAgent, undefined, (up) => {
+      const reset = subscriptionLimitReset(up.headers);
+      if (reset) {
+        subscriptionResets.set(credential, reset);
+        console.log(`subscription limit reached; Copilot until ${new Date(reset).toISOString()}`);
+      }
+      const refused = up.statusCode === 429 && up.headers["anthropic-ratelimit-unified-status"] === "rejected";
+      if (!refused) {
+        res.writeHead(up.statusCode, up.headers);
+        up.pipe(res);
+        return;
+      }
+      up.resume();
+      up.on("end", useCopilot);
+    });
+  });
+}
+
+// Over the limit (refused, or served as extra usage), or a window at preemptAt utilization: the reset to wait for.
+function subscriptionLimitReset(headers) {
+  const header = (name) => headers[`anthropic-ratelimit-unified-${name}`];
+  if (header("status") === "rejected") return Number(header("reset")) * 1000;
+  const window = ["5h", "7d"].find((w) => Number(header(`${w}-utilization`)) >= subscriptionFallback.preemptAt);
+  return window && Number(header(`${window}-reset`)) * 1000;
+}
+
+function stripCacheScope(value) {
+  if (!value || typeof value !== "object") return;
+  if (value.cache_control) delete value.cache_control.scope;
+  for (const child of Object.values(value)) stripCacheScope(child);
 }
 
 // Only the Messages API carries a model; every other path goes straight to Anthropic.
@@ -119,6 +192,7 @@ function handle(req, res) {
     req.off("data", onData);
     req.off("end", route);
     if (match) forwardToRoute(req, res, head, match);
+    else if (req.url.split("?")[0] === "/v1/messages" && !req.headers["x-api-key"] && req.headers.authorization?.startsWith("Bearer ") && subscriptionFallback?.models[model]) forwardWithSubscriptionFallback(req, res, head, model);
     else forward(req, res, head, anthropic, directAgent);
   };
   const onData = (chunk) => {
