@@ -1,7 +1,8 @@
 // Usage: node new-space.ts --slug <slug> --task <task> [--agent claude] [--model <id>] [--machine <where>] [--repo <path>]
 //        node new-space.ts --list-models [--agent claude] [--machine <where>]
-import { statfsSync } from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, readdirSync, readFileSync, statfsSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import { checkHerdr, failIfProblems, on, problems, resolveMachine, tryRun } from "./herdr-lib.ts";
 
@@ -31,7 +32,24 @@ if (!AGENTS.includes(args.agent)) problems.push(`unknown agent "${args.agent}"; 
 checkHerdr();
 failIfProblems("new-space");
 
-const agentCommand = args.model ? `${args.agent} --model ${args.model}` : args.agent;
+// A claude space inherits the launching Claude session's model unless --model names one,
+// so a default saved by /model in some other session doesn't pick the model.
+function currentSessionModel(): string | undefined {
+  const sessionId = process.env.CLAUDE_CODE_SESSION_ID;
+  if (args.agent !== "claude" || !sessionId) return undefined;
+  const projects = join(homedir(), ".claude", "projects");
+  const dir = readdirSync(projects).find(d => existsSync(join(projects, d, `${sessionId}.jsonl`)));
+  if (!dir) return undefined;
+  const lines = readFileSync(join(projects, dir, `${sessionId}.jsonl`), "utf8").trimEnd().split("\n");
+  for (const line of lines.reverse()) {
+    const model = JSON.parse(line).message?.model;
+    if (typeof model === "string" && model !== "<synthetic>") return model;
+  }
+  return undefined;
+}
+
+const model = args.model ?? currentSessionModel();
+const agentCommand = model ? `${args.agent} --model ${model}` : args.agent;
 
 const machine = args.machine ? resolveMachine(args.machine) : undefined;
 failIfProblems("new-space");

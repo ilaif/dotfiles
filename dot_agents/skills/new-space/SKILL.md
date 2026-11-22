@@ -17,7 +17,7 @@ A model named before the task, such as "opus model:" or "with the fast sonnet", 
 node ~/.claude/skills/new-space/new-space.ts --list-models --agent <agent> [--machine <where>]
 ```
 
-It prints one `<id>\t<label>` line per model. Pick the line that best matches what the user said and pass its exact `<id>` to `--model`. Several plausible matches: list them and ask. None: relay the list and stop. No model named: skip the listing and omit the flag.
+It prints one `<id>\t<label>` line per model. Pick the line that best matches what the user said and pass its exact `<id>` to `--model`. Several plausible matches: list them and ask. None: relay the list and stop. No model named: skip the listing and omit the flag; a `claude` space then inherits this session's model (the script reads it from the session transcript).
 
 `codex: fix the flaky auth test` → local, agent `codex`, task `fix the flaky auth test`.
 `opus model: fix the flaky auth test` → local, agent `claude`, `--list-models`, then model `opus`, task `fix the flaky auth test`.
