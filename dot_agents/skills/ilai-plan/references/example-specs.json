@@ -21,8 +21,8 @@
       },
       {
         "id": "as",
-        "name": "Authorization server",
-        "sub": "OAuth 2.1",
+        "name": "auth-service",
+        "sub": "Better Auth · OAuth 2.1",
         "tag": "AUTH",
         "kind": "external",
         "col": 0,
@@ -117,8 +117,8 @@
       },
       {
         "id": "as",
-        "name": "Authorization server",
-        "sub": "behind Access",
+        "name": "auth-service",
+        "sub": "Better Auth",
         "kind": "external"
       },
       {
