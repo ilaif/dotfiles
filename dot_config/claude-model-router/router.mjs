@@ -132,7 +132,170 @@ async function sendToRoute(req, res, raw, route) {
     res.end(JSON.stringify({ type: "error", error: { type: "api_error", message: err.message } }));
     return;
   }
+  if (route.chatModels?.includes(body.model)) return sendAsChat(req, res, body, route);
   forward(req, res, Buffer.from(JSON.stringify(body)), route.url, route.agent, route);
+}
+
+// Models a route serves over OpenAI Chat Completions only (Copilot's Gemini): Messages in, Chat Completions upstream,
+// Messages (or its SSE stream) back.
+const STOP_REASONS = { stop: "end_turn", length: "max_tokens", tool_calls: "tool_use", content_filter: "refusal" };
+
+function sendAsChat(req, res, body, route) {
+  const model = `${route.stripModelPrefix ? route.modelPrefix : ""}${body.model}`;
+  if (req.url.startsWith("/v1/messages/count_tokens")) {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ input_tokens: Math.ceil(JSON.stringify(body).length / 4) }));
+    return;
+  }
+  const payload = Buffer.from(JSON.stringify(chatRequest(body)));
+  const headers = { ...route.headers, authorization: route.token, "content-type": "application/json", "content-length": payload.length };
+  const upstream = https.request(
+    { host: route.url.hostname, port: Number(route.url.port || 443), method: "POST", path: "/chat/completions", headers, agent: route.agent },
+    (up) => {
+      if (up.statusCode !== 200) return relayChatError(up, res);
+      if (body.stream) return streamChat(up, res, model);
+      readBody(up, Buffer.alloc(0), (raw) => {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(messageFromChat(JSON.parse(raw), model)));
+      });
+    },
+  );
+  upstream.on("error", (err) => {
+    if (!res.headersSent) res.writeHead(502, { "content-type": "application/json" });
+    res.end(JSON.stringify({ type: "error", error: { type: "api_error", message: `claude-model-router: ${err.message}` } }));
+  });
+  upstream.end(payload);
+}
+
+function chatRequest(body) {
+  const messages = [];
+  const system = typeof body.system === "string" ? body.system : body.system?.map((block) => block.text).join("\n\n");
+  if (system) messages.push({ role: "system", content: system });
+  for (const message of body.messages) {
+    const blocks = typeof message.content === "string" ? [{ type: "text", text: message.content }] : message.content;
+    if (message.role === "assistant") {
+      const text = blocks.filter((block) => block.type === "text").map((block) => block.text).join("");
+      const toolCalls = blocks
+        .filter((block) => block.type === "tool_use")
+        .map((block) => ({ id: block.id, type: "function", function: { name: block.name, arguments: JSON.stringify(block.input) } }));
+      messages.push({ role: "assistant", content: text || null, ...(toolCalls.length && { tool_calls: toolCalls }) });
+      continue;
+    }
+    // Tool messages take text only, so images a tool returned (Read on a screenshot) follow as a user message.
+    const images = [];
+    for (const block of blocks.filter((b) => b.type === "tool_result")) {
+      const content = typeof block.content === "string" ? [{ type: "text", text: block.content }] : (block.content ?? []);
+      const text = content.filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      messages.push({ role: "tool", tool_call_id: block.tool_use_id, content: block.is_error ? `Error: ${text}` : text });
+      images.push(...content.filter((b) => b.type === "image"));
+    }
+    const parts = [...images, ...blocks.filter((block) => block.type === "text" || block.type === "image")].map(chatPart);
+    if (parts.length) messages.push({ role: "user", content: parts });
+  }
+  const tools = body.tools
+    ?.filter((tool) => tool.input_schema)
+    .map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.input_schema } }));
+  return {
+    model: body.model,
+    messages,
+    max_tokens: body.max_tokens,
+    temperature: body.temperature,
+    top_p: body.top_p,
+    stop: body.stop_sequences,
+    stream: body.stream,
+    stream_options: body.stream ? { include_usage: true } : undefined,
+    tools: tools?.length ? tools : undefined,
+    tool_choice: tools?.length ? chatToolChoice(body.tool_choice) : undefined,
+  };
+}
+
+function chatPart(block) {
+  if (block.type === "text") return { type: "text", text: block.text };
+  const url = block.source.type === "url" ? block.source.url : `data:${block.source.media_type};base64,${block.source.data}`;
+  return { type: "image_url", image_url: { url } };
+}
+
+function chatToolChoice(choice) {
+  if (choice?.type === "any") return "required";
+  if (choice?.type === "none") return "none";
+  if (choice?.type === "tool") return { type: "function", function: { name: choice.name } };
+  return "auto";
+}
+
+function messageFromChat(chat, model) {
+  const { message, finish_reason } = chat.choices[0];
+  const content = [];
+  if (message.content) content.push({ type: "text", text: message.content });
+  for (const call of message.tool_calls ?? []) {
+    content.push({ type: "tool_use", id: call.id, name: call.function.name, input: JSON.parse(call.function.arguments || "{}") });
+  }
+  return {
+    id: `msg_${chat.id}`,
+    type: "message",
+    role: "assistant",
+    model,
+    content,
+    stop_reason: STOP_REASONS[finish_reason] ?? "end_turn",
+    stop_sequence: null,
+    usage: { input_tokens: chat.usage?.prompt_tokens ?? 0, output_tokens: chat.usage?.completion_tokens ?? 0 },
+  };
+}
+
+function streamChat(up, res, model) {
+  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
+  const send = (type, data) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
+  send("message_start", {
+    message: { id: `msg_${Date.now()}`, type: "message", role: "assistant", model, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } },
+  });
+  let index = -1;
+  let open = null;
+  let stopReason = "end_turn";
+  let usage = {};
+  const startBlock = (key, block) => {
+    if (open !== null) send("content_block_stop", { index });
+    index += 1;
+    open = key;
+    send("content_block_start", { index, content_block: block });
+  };
+  let buffer = "";
+  up.setEncoding("utf8");
+  up.on("data", (chunk) => {
+    buffer += chunk;
+    const lines = buffer.split("\n");
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith("data: ") || line === "data: [DONE]") continue;
+      const event = JSON.parse(line.slice(6));
+      if (event.usage) usage = event.usage;
+      const choice = event.choices?.[0];
+      if (!choice) continue;
+      if (choice.delta?.content) {
+        if (open !== "text") startBlock("text", { type: "text", text: "" });
+        send("content_block_delta", { index, delta: { type: "text_delta", text: choice.delta.content } });
+      }
+      for (const call of choice.delta?.tool_calls ?? []) {
+        if (call.id) startBlock(`tool${call.index}`, { type: "tool_use", id: call.id, name: call.function.name, input: {} });
+        if (call.function?.arguments) send("content_block_delta", { index, delta: { type: "input_json_delta", partial_json: call.function.arguments } });
+      }
+      if (choice.finish_reason) stopReason = STOP_REASONS[choice.finish_reason] ?? "end_turn";
+    }
+  });
+  up.on("end", () => {
+    if (open !== null) send("content_block_stop", { index });
+    send("message_delta", {
+      delta: { stop_reason: stopReason, stop_sequence: null },
+      usage: { input_tokens: usage.prompt_tokens ?? 0, output_tokens: usage.completion_tokens ?? 0 },
+    });
+    send("message_stop", {});
+    res.end();
+  });
+}
+
+function relayChatError(up, res) {
+  readBody(up, Buffer.alloc(0), (raw) => {
+    res.writeHead(up.statusCode, { "content-type": "application/json" });
+    res.end(JSON.stringify({ type: "error", error: { type: up.statusCode === 429 ? "rate_limit_error" : "api_error", message: raw.toString() } }));
+  });
 }
 
 const subscriptionFallback = config.subscriptionFallback;
