@@ -164,7 +164,7 @@ function forwardWithSubscriptionFallback(req, res, head, model) {
     };
     if (Date.now() < subscriptionResets.get(credential)) return useCopilot();
     forward(req, res, raw, anthropic, directAgent, undefined, (up) => {
-      const reset = subscriptionLimitReset(up.headers);
+      const reset = subscriptionLimitReset(up);
       if (reset) {
         subscriptionResets.set(credential, reset);
         writeFileSync(`${dir}/fallback-until`, String(reset));
@@ -182,11 +182,12 @@ function forwardWithSubscriptionFallback(req, res, head, model) {
   });
 }
 
-// Over the limit (refused, or served as extra usage), or with trigger "utilization" a window at preemptAt: the reset to wait for.
-function subscriptionLimitReset(headers) {
-  const header = (name) => headers[`anthropic-ratelimit-unified-${name}`];
+// The reset to wait for. Trigger "limit": a refused request (429). Otherwise: over the limit (refused, or served as
+// extra usage), or a window at preemptAt utilization.
+function subscriptionLimitReset(up) {
+  const header = (name) => up.headers[`anthropic-ratelimit-unified-${name}`];
+  if (subscriptionFallback.trigger === "limit") return up.statusCode === 429 && header("status") === "rejected" && Number(header("reset")) * 1000;
   if (header("status") === "rejected") return Number(header("reset")) * 1000;
-  if (subscriptionFallback.trigger === "limit") return;
   const window = ["5h", "7d"].find((w) => Number(header(`${w}-utilization`)) >= subscriptionFallback.preemptAt);
   return window && Number(header(`${window}-reset`)) * 1000;
 }
