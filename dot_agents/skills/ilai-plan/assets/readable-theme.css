@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap');
+/* ilai-plan's readable palette over web-artifacts-builder's theme, without editing that skill.
+   Doubled :root outranks the theme's <style> (mounted later in <body>). Every text token clears
+   4.5:1 on --bg, --surface and --brand-soft in both themes; body text clears 9:1. */
+:root:root {
+  --bg: #f7f8fa; --surface: #ffffff; --border: #dfe3e8; --border-hi: #c9cfd6;
+  --ink: #1f2328; --ink-2: #3a4047; --ink-3: #59606a;
+  --brand: #1f5fcc; --brand-ink: #174ea6; --brand-soft: #e8f0fd;
+  --add: #17744b; --add-soft: #e6f4ec; --rm: #b3374f; --rm-soft: #fbe9ed;
+}
+@media (prefers-color-scheme: dark) {
+  :root:root {
+    --bg: #0f1113; --surface: #1a1d21; --border: #2e3237; --border-hi: #464b52;
+    --ink: #eef0f2; --ink-2: #d0d5da; --ink-3: #a3aab2;
+    --brand: #7cb1ff; --brand-ink: #a9cbff; --brand-soft: #15243c;
+    --add: #4ddca0; --add-soft: #132d22; --rm: #f2879f; --rm-soft: #301a23;
+  }
+}
+:root:root[data-theme="light"] {
+  --bg: #f7f8fa; --surface: #ffffff; --border: #dfe3e8; --border-hi: #c9cfd6;
+  --ink: #1f2328; --ink-2: #3a4047; --ink-3: #59606a;
+  --brand: #1f5fcc; --brand-ink: #174ea6; --brand-soft: #e8f0fd;
+  --add: #17744b; --add-soft: #e6f4ec; --rm: #b3374f; --rm-soft: #fbe9ed;
+}
+:root:root[data-theme="dark"] {
+  --bg: #0f1113; --surface: #1a1d21; --border: #2e3237; --border-hi: #464b52;
+  --ink: #eef0f2; --ink-2: #d0d5da; --ink-3: #a3aab2;
+  --brand: #7cb1ff; --brand-ink: #a9cbff; --brand-soft: #15243c;
+  --add: #4ddca0; --add-soft: #132d22; --rm: #f2879f; --rm-soft: #301a23;
+}
+
+/* Larger type: a 17px root scales every rem-based size (body, headings, spacing); the px sizes
+   the kit hard-codes are raised to match. Comfortable measure, nothing under 14px. */
+html { font-size: 17px; }
+.xk-prose { max-width: 72ch; }
+.text-xs { font-size: 14px; line-height: 1.25rem; }
+.text-\[13px\] { font-size: 15px; }
+.xk-rail a { font-size: 15px; }
+.xk-rail .xk-group { font-size: 13px; }
+/* Reading text sits above the base: paragraphs 19px, takeaways 22px, table and card text 16px. */
+p.xk-prose { font-size: 1.125rem; line-height: 1.7; }
+p[data-takeaway] { font-size: 1.3rem; line-height: 1.45; }
+.text-sm { font-size: 16px; line-height: 1.5rem; }
+/* Atkinson Hyperlegible Next: built so l / I / 1 and 0 / O never look alike, which matters on
+   pages full of identifiers. Code stays in the mono stack. */
+:root body { font-family: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
