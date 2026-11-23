@@ -182,10 +182,11 @@ function forwardWithSubscriptionFallback(req, res, head, model) {
   });
 }
 
-// Over the limit (refused, or served as extra usage), or a window at preemptAt utilization: the reset to wait for.
+// Over the limit (refused, or served as extra usage), or with trigger "utilization" a window at preemptAt: the reset to wait for.
 function subscriptionLimitReset(headers) {
   const header = (name) => headers[`anthropic-ratelimit-unified-${name}`];
   if (header("status") === "rejected") return Number(header("reset")) * 1000;
+  if (subscriptionFallback.trigger === "limit") return;
   const window = ["5h", "7d"].find((w) => Number(header(`${w}-utilization`)) >= subscriptionFallback.preemptAt);
   return window && Number(header(`${window}-reset`)) * 1000;
 }

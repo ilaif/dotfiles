@@ -74,9 +74,14 @@ Add a route to the untracked router config with `modelPrefix: "copilot/"`, `orig
 
 ### Subscription fallback
 
-With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests from sessions that send `x-claude-router-fallback` (`claude-act` sets it through `ANTHROPIC_CUSTOM_HEADERS`; the router strips it) move to the Copilot route before extra (on-demand) usage starts, and return after the limit resets. Each response's `anthropic-ratelimit-unified-*` headers decide it:
+With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests from sessions that send `x-claude-router-fallback` (`claude-act` sets it through `ANTHROPIC_CUSTOM_HEADERS`; the router strips it) move to the Copilot route, and return after the limit resets. `trigger` picks when they move:
 
-- a 5h or 7d window at `preemptAt` utilization or above: Copilot until that window's reset;
+- `"utilization"` (default): before extra (on-demand) usage starts, once a window reaches `preemptAt`;
+- `"limit"`: only when Claude refuses the request or serves it as extra usage. Set this when you have no extra usage, so you use the whole subscription first.
+
+Each response's `anthropic-ratelimit-unified-*` headers decide it:
+
+- with `trigger: "utilization"`, a 5h or 7d window at `preemptAt` utilization or above: Copilot until that window's reset;
 - `anthropic-ratelimit-unified-status: rejected` (over the limit): Copilot until `anthropic-ratelimit-unified-reset`. A refused request (429) is retried on Copilot in the same call; one already served as extra usage (200) is delivered, and the next request moves.
 
 Fallback requests drop Claude thinking blocks from the history, since Copilot rejects their signatures. Interactive Claude Code keeps the conversation in a server-side thread and sends only new messages (`thread: continue`); Copilot has no copy, so the fallback answers those with `thread_unsupported_request`, and Claude Code resends the turn with the whole history and stays stateless on that model for the session. Ordinary 429s, auth errors, API-key requests and models missing from `models` pass through unchanged. State is in memory: a router restart re-checks Claude on the next request and clears `fallback-until`. The router writes the reset time to `fallback-until`; the ccstatusline widget `claude-router-statusline` shows `⇄ Claude` or `⇄ Copilot until HH:MM` in `claude-act` sessions. Watch it with `claude-router logs` (`subscription fallback: <model> -> <model>`).
@@ -84,6 +89,7 @@ Fallback requests drop Claude thinking blocks from the history, since Copilot re
 ```json
 "subscriptionFallback": {
   "routePrefix": "copilot/",
+  "trigger": "utilization",
   "preemptAt": 0.98,
   "models": { "claude-opus-5-5": "claude-opus-5.5", "claude-sonnet-5-5": "claude-sonnet-5.5" }
 }

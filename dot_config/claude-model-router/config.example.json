@@ -2,6 +2,7 @@
   "port": 8787,
   "subscriptionFallback": {
     "routePrefix": "copilot/",
+    "trigger": "utilization",
     "preemptAt": 0.98,
     "models": {
       "claude-opus-5-5": "claude-opus-5.5",
