@@ -89,12 +89,13 @@ export default function App() {
             ['Untrusted text', 'Tenant names, audit details and other text people wrote come back in untrusted_content fields'],
           ]}
         />
-        <Callout title="Authorization server: auth-service (Better Auth)">
-          auth-service is already Act's OIDC issuer on Better Auth, minting the Act tokens the customer MCP server uses
-          (<Src path="docs/architecture.md" />), and it already knows the Auth0 staff connections (<Src path="apps/auth-service/src/start.ts" />).
-          Adding <Id>@better-auth/mcp</Id> and CIMD registration there gives the backoffice MCP the same stack as Terraplain:
-          staff sign in through Auth0 as today, and auth-service issues the token bound to /mcp. No Auth0 tenant-wide setting
-          changes, so the customer MCP server is untouched.
+        <Callout title="Authorization server: Better Auth inside backoffice-service">
+          Staff tokens can suspend every tenant and flip a flag for all of them, so they get their own issuer, signing keys
+          and client tables, apart from auth-service's customer tokens. backoffice-service runs Better Auth with
+          <Id>@better-auth/mcp</Id> and CIMD registration, as Terraplain's server does; sign-in hands off to Auth0 with
+          <Id>genericOAuth</Id> (the plugin auth-service already uses for platform logins) and admits only the staff
+          connections, matched by connection, never by email domain. Auth and staff roles then live in one service, and
+          neither auth-service nor Auth0's tenant-wide settings change.
         </Callout>
       </Section>
 
@@ -116,7 +117,7 @@ export default function App() {
             ['Staff list', 'A staff member gets a row on first sign-in (none exists today), and can then be added to groups and roles'],
           ]}
         />
-        <Figure caption="Five new tables in the core Postgres database; one additive migration. A role keeps its actions as a list.">
+        <Figure caption="Five new tables in the public schema of core Postgres, next to role_assignment, never in a tenant schema; one additive migration. A role keeps its actions as a list.">
           <StaffRolesSchema />
         </Figure>
         <Table
@@ -205,12 +206,12 @@ export default function App() {
         <Changes
           rows={[
             { name: '/mcp route', area: 'api', after: 'SDK v2, stateless, per-request server', note: 'tools call procedures through createCaller' },
-            { name: 'Discovery + token check', area: 'access', after: 'RFC 9728 metadata, JWT bound to /mcp', note: 'issuer: auth-service' },
-            { name: 'auth-service', area: 'access', after: '@better-auth/mcp + CIMD; staff sign in via Auth0', note: 'mints tokens bound to /mcp' },
+            { name: 'Discovery + token check', area: 'access', after: 'RFC 9728 metadata, JWT bound to /mcp', note: 'issuer: Better Auth in backoffice-service' },
+            { name: 'Better Auth', area: 'access', after: 'issuer in backoffice-service: @better-auth/mcp + CIMD, Auth0 staff login', note: 'own keys and tables, public schema' },
             { name: 'Cloudflare Access app', area: 'config', before: 'every path behind Access', after: 'bypass /mcp, discovery, token, revoke' },
             { name: 'Audit row', area: 'data', before: 'actor', after: 'actor + via mcp + client + tool + intent' },
             { name: 'Staff roles', area: 'access', before: 'every staff member can call everything', after: 'action per procedure, roles and groups from Postgres', note: 'applies to the UI too' },
-            { name: 'Core Postgres', area: 'data', after: 'five staff_* tables', note: 'one additive migration' },
+            { name: 'Core Postgres', area: 'data', after: 'five staff_* tables in the public schema', note: 'one additive migration in libs/pg/drizzle' },
             { name: 'Backoffice UI', area: 'ui', after: 'Roles, Groups and Staff pages' },
             { name: 'Audit middleware', area: 'behavior', before: 'mutations only', after: '+ every MCP call' },
             { name: 'Podium tools', area: 'config', after: 'backoffice entry + confidential client per environment', note: 'infrastructure repo' },
@@ -222,7 +223,7 @@ export default function App() {
       <Section group="Delivery" id="delivery" title="Delivery" takeaway="A half-day spike, then seven PRs, roles first; about 11–15 days plus infra.">
         <Steps
           items={[
-            { title: 'Spike on dev, then auth-service + infra', body: 'Spike, half a day: @better-auth/mcp and CIMD on dev auth-service, Claude Code signs in with an Auth0 staff account, one read call, the audit row checked. Then two PRs: auth-service (1–2 days) and the Podium client plus backoffice-mcp Access app (not sized yet).' },
+            { title: 'Spike on dev, then the sign-in + infra', body: 'Spike, half a day: Better Auth with @better-auth/mcp in a dev backoffice-service, Claude Code signs in with an Auth0 staff account, one read call, the audit row checked. Then two PRs: the backoffice-service sign-in (1–2 days) and the Podium client plus backoffice-mcp Access app (not sized yet).' },
             { title: 'backoffice-service: staff roles', body: 'About 2–3 days. Migration, action catalog, live check, seeded roles, All staff holding Admin. Its own PR: it changes the UI too and holds the one-way migration.' },
             { title: 'backoffice-client: Roles, Groups and Staff pages', body: 'About 2–3 days. Ships before anyone moves All staff off Admin.' },
             { title: 'backoffice-service: /mcp, then write tools', body: 'Two PRs: the route, auth, audit fields, bo_whoami and read tools (about 2 days), then the write tools (1–2 days).' },
@@ -231,11 +232,11 @@ export default function App() {
         />
       </Section>
 
-      <Section group="Delivery" id="decisions" title="Decisions" takeaway="All six calls are made; the spike proves auth-service end to end.">
+      <Section group="Delivery" id="decisions" title="Decisions" takeaway="All six calls are made; the spike proves the sign-in end to end.">
         <Table
           columns={['Decision', 'Options', 'Recommended']}
           rows={[
-            ['Authorization server', 'Auth0 Auth for MCP · auth-service (Better Auth)', <Chip kind="add">Decided: auth-service</Chip>],
+            ['Authorization server', 'Auth0 Auth for MCP · auth-service · Better Auth inside backoffice-service', <Chip kind="add">Decided: Better Auth inside backoffice-service</Chip>],
             ['Clients', 'Local Claude Code · Podium · both', <Chip kind="add">Decided: both</Chip>],
             ['Impersonation', 'Out · deep link · full URL', <Chip kind="add">Decided: deep link tool</Chip>],
             ['Global flag toggle', 'UI only · tool behind its own action', <Chip kind="add">Decided: tool, Admin only</Chip>],

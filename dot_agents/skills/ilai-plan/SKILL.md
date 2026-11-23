@@ -87,7 +87,7 @@ recommended answers, so Ilai can answer in one message.
 - **An MCP server plan** starts from Terraplain's design (`gh api repos/act-security/terraplane/contents/docs/mcp.md`):
   official SDK v2, stateless, OAuth 2.1 with discovery, per-tool scopes, in-process calls as the user, audit with
   `intent`. Say where the plan departs from it and why.
-- **act MCP plans:** the authorization server is auth-service (Better Auth, `@better-auth/mcp`), with staff signing in
-  through Auth0. Clients connect through Podium and claude.ai org connectors; the `act-security/claude-code-plugins`
+- **act MCP plans:** a staff-facing MCP runs its own Better Auth issuer inside the service (`@better-auth/mcp`, own keys),
+  like Terraplain, with staff signing in through Auth0 staff connections; customer tokens stay on auth-service. Clients connect through Podium and claude.ai org connectors; the `act-security/claude-code-plugins`
   plugin is inactive, never a delivery path.
 - Recommend out of v1 anything that would put a credential or login link into a tool result or transcript.

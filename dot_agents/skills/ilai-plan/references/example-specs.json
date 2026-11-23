@@ -2,8 +2,8 @@
   {
     "type": "architecture",
     "slug": "mcp-architecture",
-    "title": "The MCP is a route inside backoffice-service",
-    "desc": "Claude Code or Podium gets a token from the authorization server and calls the /mcp route on backoffice-service. The route runs the existing tRPC procedures in-process as the staff member; they write the audit row, change PostHog flags and start RMPO DAG runs.",
+    "title": "The MCP and its sign-in live inside backoffice-service",
+    "desc": "Claude Code or Podium signs the staff member in through Better Auth inside backoffice-service, which hands off to Auth0's staff connections. The client then calls the /mcp route, which runs the existing tRPC procedures in-process as the staff member; they write the audit row, change PostHog flags and start RMPO DAG runs.",
     "direction": "LR",
     "gap": [
       64,
@@ -20,10 +20,10 @@
         "row": 0
       },
       {
-        "id": "as",
-        "name": "auth-service",
-        "sub": "Better Auth · OAuth 2.1",
-        "tag": "AUTH",
+        "id": "auth0",
+        "name": "Auth0",
+        "sub": "staff connections",
+        "tag": "IDP",
         "kind": "external",
         "col": 0,
         "row": 1
@@ -38,21 +38,20 @@
         "row": 0
       },
       {
+        "id": "as",
+        "name": "Better Auth",
+        "sub": "OAuth 2.1 \u00b7 own keys",
+        "tag": "NEW",
+        "col": 1,
+        "row": 1
+      },
+      {
         "id": "procs",
         "name": "tRPC procedures",
         "sub": "as the staff member",
         "tag": "API",
         "col": 2,
         "row": 0
-      },
-      {
-        "id": "ext",
-        "name": "PostHog \u00b7 RMPO DAG",
-        "sub": "flags \u00b7 pipeline runs",
-        "tag": "EXT",
-        "kind": "external",
-        "col": 1,
-        "row": 1
       },
       {
         "id": "audit",
@@ -62,6 +61,15 @@
         "kind": "store",
         "col": 2,
         "row": 1
+      },
+      {
+        "id": "ext",
+        "name": "PostHog \u00b7 RMPO DAG",
+        "sub": "flags \u00b7 pipeline runs",
+        "tag": "EXT",
+        "kind": "external",
+        "col": 2,
+        "row": 2
       }
     ],
     "edges": [
@@ -69,6 +77,12 @@
         "from": "client",
         "to": "as",
         "label": "sign in",
+        "style": "dashed"
+      },
+      {
+        "from": "as",
+        "to": "auth0",
+        "label": "staff login",
         "style": "dashed"
       },
       {
@@ -98,6 +112,7 @@
         "label": "backoffice-service",
         "nodes": [
           "mcp",
+          "as",
           "procs"
         ]
       }
@@ -117,8 +132,8 @@
       },
       {
         "id": "as",
-        "name": "auth-service",
-        "sub": "Better Auth",
+        "name": "Better Auth",
+        "sub": "in backoffice-service",
         "kind": "external"
       },
       {
@@ -145,7 +160,7 @@
       {
         "from": "client",
         "to": "as",
-        "label": "authorize (PKCE) + consent",
+        "label": "authorize (PKCE) via Auth0",
         "kind": "http"
       },
       {
