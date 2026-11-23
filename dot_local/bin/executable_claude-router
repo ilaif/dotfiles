@@ -8,6 +8,7 @@ log="$HOME/Library/Logs/claude-model-router.log"
 private="$HOME/.claude/settings.private.json"
 settings="$HOME/.claude/settings.json"
 url=http://127.0.0.1:8787
+config="$HOME/.config/claude-model-router/config.json"
 
 set_env() { # $1 = jq filter applied to both settings files
   for f in "$private" "$settings"; do
@@ -28,5 +29,15 @@ stop) launchctl bootout "$svc" && echo "stopped (run '$0 off' too, or new claude
 logs) tail -n 50 -f "$log" ;;
 off) set_env 'del(.env.HTTPS_PROXY, .env.NO_PROXY, .env.NODE_EXTRA_CA_CERTS, .env.ANTHROPIC_BASE_URL, .env.ANTHROPIC_CUSTOM_HEADERS, .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL)' && echo "new claude sessions go direct to Anthropic; Foundry models and the Copilot fallback unavailable" ;;
 on) set_env ".env.HTTPS_PROXY = \"$url\" | .env.NO_PROXY = \"localhost,127.0.0.1,::1\" | .env.NODE_EXTRA_CA_CERTS = \"$HOME/.config/claude-model-router/tls/ca.pem\" | .env.ANTHROPIC_CUSTOM_HEADERS = \"x-claude-router-fallback: 1\" | .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL = \"1\" | del(.env.ANTHROPIC_BASE_URL)" && echo "new claude sessions (CLI and Desktop) use the router with the Copilot fallback" ;;
-*) echo "usage: claude-router [status|restart|start|stop|logs|off|on]" >&2; exit 2 ;;
+trigger)
+  case "${2:-}" in
+  "") jq -r '.subscriptionFallback.trigger // "utilization"' "$config" ;;
+  utilization | limit)
+    jq --indent 2 --arg t "$2" '.subscriptionFallback.trigger = $t' "$config" >"$config.tmp" && mv "$config.tmp" "$config"
+    launchctl kickstart -k "$svc" && echo "Copilot fallback trigger: $2 (router restarted)"
+    ;;
+  *) echo "usage: claude-router trigger [utilization|limit]" >&2; exit 2 ;;
+  esac
+  ;;
+*) echo "usage: claude-router [status|restart|start|stop|logs|off|on|trigger [utilization|limit]]" >&2; exit 2 ;;
 esac
