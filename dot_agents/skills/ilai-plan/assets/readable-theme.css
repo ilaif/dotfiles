@@ -1,32 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap');
-/* ilai-plan's readable palette over web-artifacts-builder's theme, without editing that skill.
-   Doubled :root outranks the theme's <style> (mounted later in <body>). Every text token clears
-   4.5:1 on --bg, --surface and --brand-soft in both themes; body text clears 9:1. */
+/* ilai-plan's palette over web-artifacts-builder's theme, without editing that skill: Catppuccin
+   Latte (light) and Mocha (dark). Doubled :root outranks the theme's <style> (mounted later in <body>).
+   Latte's blue, green and red are darkened a step so every text token clears 4.5:1 on --bg, --surface
+   and the soft fills; body text is 7:1 in light and 12:1 in dark, softer than pure black or white. */
 :root:root {
-  --bg: #f7f8fa; --surface: #ffffff; --border: #dfe3e8; --border-hi: #c9cfd6;
-  --ink: #1f2328; --ink-2: #3a4047; --ink-3: #59606a;
-  --brand: #1f5fcc; --brand-ink: #174ea6; --brand-soft: #e8f0fd;
-  --add: #17744b; --add-soft: #e6f4ec; --rm: #b3374f; --rm-soft: #fbe9ed;
+  --bg: #eff1f5; --surface: #ffffff; --border: #dce0e8; --border-hi: #ccd0da;
+  --ink: #4c4f69; --ink-2: #545770; --ink-3: #5c5f77;
+  --brand: #1e66f5; --brand-ink: #1a56cf; --brand-soft: #dfe7fb;
+  --add: #2f7a1f; --add-soft: #e3f1df; --rm: #b00d30; --rm-soft: #f9e1e6;
 }
 @media (prefers-color-scheme: dark) {
   :root:root {
-    --bg: #0f1113; --surface: #1a1d21; --border: #2e3237; --border-hi: #464b52;
-    --ink: #eef0f2; --ink-2: #d0d5da; --ink-3: #a3aab2;
-    --brand: #7cb1ff; --brand-ink: #a9cbff; --brand-soft: #15243c;
-    --add: #4ddca0; --add-soft: #132d22; --rm: #f2879f; --rm-soft: #301a23;
+    --bg: #181825; --surface: #1e1e2e; --border: #313244; --border-hi: #45475a;
+    --ink: #cdd6f4; --ink-2: #bac2de; --ink-3: #a6adc8;
+    --brand: #89b4fa; --brand-ink: #b4befe; --brand-soft: #2a3149;
+    --add: #a6e3a1; --add-soft: #243128; --rm: #f38ba8; --rm-soft: #3a2533;
   }
 }
 :root:root[data-theme="light"] {
-  --bg: #f7f8fa; --surface: #ffffff; --border: #dfe3e8; --border-hi: #c9cfd6;
-  --ink: #1f2328; --ink-2: #3a4047; --ink-3: #59606a;
-  --brand: #1f5fcc; --brand-ink: #174ea6; --brand-soft: #e8f0fd;
-  --add: #17744b; --add-soft: #e6f4ec; --rm: #b3374f; --rm-soft: #fbe9ed;
+  --bg: #eff1f5; --surface: #ffffff; --border: #dce0e8; --border-hi: #ccd0da;
+  --ink: #4c4f69; --ink-2: #545770; --ink-3: #5c5f77;
+  --brand: #1e66f5; --brand-ink: #1a56cf; --brand-soft: #dfe7fb;
+  --add: #2f7a1f; --add-soft: #e3f1df; --rm: #b00d30; --rm-soft: #f9e1e6;
 }
 :root:root[data-theme="dark"] {
-  --bg: #0f1113; --surface: #1a1d21; --border: #2e3237; --border-hi: #464b52;
-  --ink: #eef0f2; --ink-2: #d0d5da; --ink-3: #a3aab2;
-  --brand: #7cb1ff; --brand-ink: #a9cbff; --brand-soft: #15243c;
-  --add: #4ddca0; --add-soft: #132d22; --rm: #f2879f; --rm-soft: #301a23;
+  --bg: #181825; --surface: #1e1e2e; --border: #313244; --border-hi: #45475a;
+  --ink: #cdd6f4; --ink-2: #bac2de; --ink-3: #a6adc8;
+  --brand: #89b4fa; --brand-ink: #b4befe; --brand-soft: #2a3149;
+  --add: #a6e3a1; --add-soft: #243128; --rm: #f38ba8; --rm-soft: #3a2533;
 }
 
 /* Larger type: a 17px root scales every rem-based size (body, headings, spacing); the px sizes

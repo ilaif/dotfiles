@@ -40,8 +40,8 @@ bash ~/.agents/skills/ilai-plan/scripts/build.sh <slug> App.tsx --specs specs.js
 ```
 
 `App.tsx` imports `'./readable-theme.css'` right after the kit import. The wrapper copies
-[assets/readable-theme.css](assets/readable-theme.css) into the build: darker body text (9:1 and up), a blue
-accent instead of indigo, 72-character lines, nothing under 13px. Never edit web-artifacts-builder for
+[assets/readable-theme.css](assets/readable-theme.css) into the build: the Catppuccin palette (Latte light,
+Mocha dark; every text token 4.5:1 or better), 72-character lines, nothing under 13px. Never edit web-artifacts-builder for
 readability; change that CSS file. Sections, in order; drop any that doesn't apply:
 
 Three parts, each a `group` on its `<Section>`s, in this order. Every section answers one question; a section
