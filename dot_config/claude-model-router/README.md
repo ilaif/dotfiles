@@ -23,7 +23,7 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models through a local [Bi
    }
    ```
 
-2. `~/.config/claude-model-router/bifrost/config.json` (untracked; start from `bifrost.config.example.json`). Bifrost runs file-only: no database, no request logs, no auth on its localhost port; this file is the whole configuration. Restart the router after editing it.
+2. `~/.config/claude-model-router/bifrost/config.json` (untracked; start from `bifrost.config.example.json`). This file is Bifrost's whole configuration (no config database, no auth on its localhost port). Requests are logged to `bifrost/logs.db` as metadata only (model, provider, tokens, latency, status; `disable_content_logging` keeps prompts and responses out). Restart the router after editing it.
 
 3. `~/.claude/settings.private.json` (untracked), merged over the tracked Claude settings. Claude Code accepts only models listed here:
 
@@ -45,7 +45,7 @@ A local `HTTPS_PROXY` for Claude Code that adds extra models through a local [Bi
 
 `claude-act` runs one session through the router. On the Mac, `claude` is an alias for it. For every session, including Claude Code in the Desktop app: `claude-router on` writes the proxy into the `env` of `~/.claude/settings.json`; `off` removes it and points new sessions straight at Anthropic (for when the router is down).
 
-`claude-router status|restart|start|stop|logs|off|on`. `logs` shows both the router (`limit fallback: <model> -> <model>`) and Bifrost.
+`claude-router status|restart|start|stop|logs|console|off|on`. `logs` shows both the router (`limit fallback: <model> -> <model>`) and Bifrost; `console` opens the Bifrost dashboard (requests, tokens, latency per model and provider).
 
 ## GitHub Copilot
 

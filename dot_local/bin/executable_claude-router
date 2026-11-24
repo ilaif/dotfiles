@@ -28,7 +28,8 @@ restart) launchctl kickstart -k "$svc" && echo restarted ;;
 start) launchctl bootstrap "gui/$(id -u)" "$plist" && echo started ;;
 stop) launchctl bootout "$svc" && echo "stopped (run '$0 off' too, or new claude sessions can't connect)" ;;
 logs) tail -n 50 -f "$log" ;;
+console) open "http://127.0.0.1:$(jq -r '.bifrost.port // 8790' "$config")/" ;;
 off) set_env 'del(.env.HTTPS_PROXY, .env.NO_PROXY, .env.NODE_EXTRA_CA_CERTS, .env.ANTHROPIC_BASE_URL, .env.ANTHROPIC_CUSTOM_HEADERS, .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL)' && echo "new claude sessions go direct to Anthropic; Bifrost models and the limit fallback unavailable" ;;
 on) set_env ".env.HTTPS_PROXY = \"$url\" | .env.NO_PROXY = \"localhost,127.0.0.1,::1\" | .env.NODE_EXTRA_CA_CERTS = \"$HOME/.config/claude-model-router/tls/ca.pem\" | .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL = \"1\" | del(.env.ANTHROPIC_BASE_URL, .env.ANTHROPIC_CUSTOM_HEADERS)" && echo "new claude sessions (CLI and Desktop) use the router: Bifrost models and the limit fallback" ;;
-*) echo "usage: claude-router [status|restart|start|stop|logs|off|on]" >&2; exit 2 ;;
+*) echo "usage: claude-router [status|restart|start|stop|logs|console|off|on]" >&2; exit 2 ;;
 esac

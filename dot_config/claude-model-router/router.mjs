@@ -19,12 +19,13 @@ const anthropic = new URL("https://api.anthropic.com");
 const bifrostPort = config.bifrost?.port ?? 8790;
 const bifrost = new URL(`http://127.0.0.1:${bifrostPort}`);
 
-// Bifrost runs as a child, file-only from bifrost/config.json; the router exits with it so launchd restarts both.
+// Bifrost runs as a child from bifrost/config.json (no config DB; request metadata, not content, in bifrost/logs.db);
+// the router exits with it so launchd restarts both.
 const copilotToken = `${homedir()}/.local/share/copilot-api/github_token`;
 const bifrostProcess = spawn(
   `${dirname(process.execPath)}/npx`,
   ["-y", "@maximhq/bifrost", "--transport-version", config.bifrost?.version ?? "v2.6.0", "-app-dir", `${dir}/bifrost`, "-host", "127.0.0.1", "-port", String(bifrostPort), "-log-level", "warn"],
-  { stdio: "inherit", env: { ...process.env, GITHUB_COPILOT_TOKEN: existsSync(copilotToken) ? readFileSync(copilotToken, "utf8").trim() : "" } },
+  { stdio: "inherit", cwd: `${dir}/bifrost`, env: { ...process.env, GITHUB_COPILOT_TOKEN: existsSync(copilotToken) ? readFileSync(copilotToken, "utf8").trim() : "" } },
 );
 bifrostProcess.on("exit", (code) => {
   console.error(`bifrost exited (${code})`);
