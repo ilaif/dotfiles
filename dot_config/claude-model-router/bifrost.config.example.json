@@ -1,0 +1,11 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "config_store": { "enabled": false },
+  "logs_store": { "enabled": false },
+  "client": { "enforce_auth_on_inference": false, "disable_content_logging": true },
+  "providers": {
+    "github-copilot": {
+      "keys": [{ "name": "copilot", "value": "env.GITHUB_COPILOT_TOKEN", "models": ["*"], "weight": 1.0 }]
+    }
+  }
+}

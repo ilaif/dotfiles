@@ -21,23 +21,14 @@ case "${1:-status}" in
 status)
   launchctl print "$svc" 2>/dev/null | grep -E $'^\t(state|pid|last exit code) =' || echo "not loaded"
   curl -s -o /dev/null -m 2 -w "health: %{http_code}\n" -I "$url/api/hello" || echo "health: unreachable"
+  curl -s -o /dev/null -m 2 -w "bifrost: %{http_code}\n" "http://127.0.0.1:$(jq -r '.bifrost.port // 8790' "$config")/health" || echo "bifrost: unreachable"
   echo "claude uses: $(jq -r '.env.HTTPS_PROXY // "api.anthropic.com directly (router off)"' "$settings")"
   ;;
 restart) launchctl kickstart -k "$svc" && echo restarted ;;
 start) launchctl bootstrap "gui/$(id -u)" "$plist" && echo started ;;
 stop) launchctl bootout "$svc" && echo "stopped (run '$0 off' too, or new claude sessions can't connect)" ;;
 logs) tail -n 50 -f "$log" ;;
-off) set_env 'del(.env.HTTPS_PROXY, .env.NO_PROXY, .env.NODE_EXTRA_CA_CERTS, .env.ANTHROPIC_BASE_URL, .env.ANTHROPIC_CUSTOM_HEADERS, .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL)' && echo "new claude sessions go direct to Anthropic; Foundry models and the Copilot fallback unavailable" ;;
-on) set_env ".env.HTTPS_PROXY = \"$url\" | .env.NO_PROXY = \"localhost,127.0.0.1,::1\" | .env.NODE_EXTRA_CA_CERTS = \"$HOME/.config/claude-model-router/tls/ca.pem\" | .env.ANTHROPIC_CUSTOM_HEADERS = \"x-claude-router-fallback: 1\" | .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL = \"1\" | del(.env.ANTHROPIC_BASE_URL)" && echo "new claude sessions (CLI and Desktop) use the router with the Copilot fallback" ;;
-trigger)
-  case "${2:-}" in
-  "") jq -r '.subscriptionFallback.trigger // "utilization"' "$config" ;;
-  utilization | limit)
-    jq --indent 2 --arg t "$2" '.subscriptionFallback.trigger = $t' "$config" >"$config.tmp" && mv "$config.tmp" "$config"
-    launchctl kickstart -k "$svc" && echo "Copilot fallback trigger: $2 (router restarted)"
-    ;;
-  *) echo "usage: claude-router trigger [utilization|limit]" >&2; exit 2 ;;
-  esac
-  ;;
-*) echo "usage: claude-router [status|restart|start|stop|logs|off|on|trigger [utilization|limit]]" >&2; exit 2 ;;
+off) set_env 'del(.env.HTTPS_PROXY, .env.NO_PROXY, .env.NODE_EXTRA_CA_CERTS, .env.ANTHROPIC_BASE_URL, .env.ANTHROPIC_CUSTOM_HEADERS, .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL)' && echo "new claude sessions go direct to Anthropic; Bifrost models and the limit fallback unavailable" ;;
+on) set_env ".env.HTTPS_PROXY = \"$url\" | .env.NO_PROXY = \"localhost,127.0.0.1,::1\" | .env.NODE_EXTRA_CA_CERTS = \"$HOME/.config/claude-model-router/tls/ca.pem\" | .env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL = \"1\" | del(.env.ANTHROPIC_BASE_URL, .env.ANTHROPIC_CUSTOM_HEADERS)" && echo "new claude sessions (CLI and Desktop) use the router: Bifrost models and the limit fallback" ;;
+*) echo "usage: claude-router [status|restart|start|stop|logs|off|on]" >&2; exit 2 ;;
 esac

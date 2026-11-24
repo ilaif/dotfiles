@@ -1,98 +1,81 @@
 # claude-model-router
 
-A local `HTTPS_PROXY` for Claude Code that adds extra models without slowing down Claude ones or losing Remote Control.
+A local `HTTPS_PROXY` for Claude Code that adds extra models through a local [Bifrost](https://github.com/maximhq/bifrost) gateway, without slowing down Claude models or losing Remote Control.
 
-- Claude Code keeps talking to `api.anthropic.com` (no `ANTHROPIC_BASE_URL`), so Remote Control and other first-party features stay on.
+- Claude Code keeps talking to `api.anthropic.com` (no `ANTHROPIC_BASE_URL`), so Remote Control and other first-party features stay on. Bifrost alone would need `ANTHROPIC_BASE_URL`.
 - The router decrypts `api.anthropic.com` only, with a local CA it creates in `tls/` on first start and Claude Code trusts via `NODE_EXTRA_CA_CERTS`. Other hosts (claude.ai, the Remote Control bridge, OAuth) are tunnelled untouched.
-- `POST /v1/messages*` whose `model` starts with a route's `modelPrefix` goes to that route's `origin`, through an HTTPS proxy tunnel authenticated with `Proxy-Authorization` from `tokenCommand` (refreshed in the background). First-party-only body fields the gateway rejects (`diagnostics`, `safeguards`, `thread`) are dropped.
-- Everything else goes straight to `https://api.anthropic.com` with your normal Claude login.
-- Node only, no dependencies; runs as the LaunchAgent `dev.claude-model-router` on `127.0.0.1:8787`.
+- `POST /v1/messages*` for a provider-prefixed model (`github-copilot/claude-opus-5.5`, `gateway/vendor/model-a`) goes to Bifrost's Anthropic route; Bifrost picks the provider from the first segment. The router drops your Claude login headers and Claude Code's first-party `diagnostics`/`safeguards` fields on the way.
+- Claude models go straight to Anthropic with your normal Claude login, server-side threads included.
+- **Limit fallback:** when Claude refuses a request because the subscription *and* any extra (on-demand) usage are spent (`429` with `anthropic-ratelimit-unified-status: rejected`), the router retries it on the `limitFallback` model through Bifrost, without thinking blocks (their signatures belong to the Claude account). Ordinary rate limits stay with Claude Code's own retries. There is no state: each request tries Claude first.
+- Bifrost refuses Claude Code's server-side thread continues (`thread_unsupported_request`), so Claude Code resends the full history and stays stateless on that model for the session. Without this, a gateway sees only the newest messages.
+- The router starts Bifrost (`npx @maximhq/bifrost`, version pinned in `config.json`) as a child on `127.0.0.1:8790` and exits when it does, so launchd restarts both. Node only, no dependencies; runs as the LaunchAgent `dev.claude-model-router` on `127.0.0.1:8787`.
 
 ## Enable
 
-1. Create `~/.config/claude-model-router/config.json` (not tracked; it holds your gateway details):
+1. `~/.config/claude-model-router/config.json` (untracked; start from `config.example.json`):
 
    ```json
    {
      "port": 8787,
-     "routes": [
-       {
-         "modelPrefix": "my-gateway/",
-         "origin": "https://gateway.example.com:8443",
-         "tokenCommand": "my-token-helper",
-         "refreshSeconds": 240
-       }
-     ]
+     "bifrost": { "port": 8790, "version": "v2.6.0" },
+     "limitFallback": { "claude-opus-5-5": "github-copilot/claude-opus-5.5" },
+     "upstreamProxies": []
    }
    ```
 
-   `tokenCommand` prints the full header value, e.g. `Bearer <token>`. `proxy` defaults to `origin`.
+2. `~/.config/claude-model-router/bifrost/config.json` (untracked; start from `bifrost.config.example.json`). Bifrost runs file-only: no database, no request logs, no auth on its localhost port; this file is the whole configuration. Restart the router after editing it.
 
-2. Create `~/.claude/settings.private.json` (not tracked), merged over the tracked Claude settings:
+3. `~/.claude/settings.private.json` (untracked), merged over the tracked Claude settings. Claude Code accepts only models listed here:
 
    ```json
    {
-     "env": { "ENABLE_TOOL_SEARCH": "true" },
      "modelPicker": {
        "replaceBuiltInOptions": false,
-       "options": [{ "model": "my-gateway/model-a", "label": "Gateway — Model A" }]
+       "options": [
+         { "model": "github-copilot/claude-opus-5.5", "label": "GitHub Copilot — Opus 5.5", "behavesAs": "claude-opus-5-5" },
+         { "model": "github-copilot/gemini-4-neon", "label": "GitHub Copilot — Gemini 4 Neon" }
+       ]
      }
    }
    ```
 
-3. `chezmoi apply`. The LaunchAgent is installed and started only when `config.json` exists.
+4. `chezmoi apply`. The LaunchAgent is installed and started only when `config.json` exists.
 
 ## Operate
 
-`claude-act` runs one session through the router: every route's models in `/model`, and the Copilot subscription fallback (`claude-copilot` is an older name for it). On the Mac, `claude` is an alias for `claude-act`. For every session, including Claude Code in the Desktop app: `claude-router on` writes the proxy and the Copilot fallback opt-in into the `env` of `~/.claude/settings.json`; `off` removes them and points new sessions straight at Anthropic (for when the router is down).
+`claude-act` runs one session through the router. On the Mac, `claude` is an alias for it. For every session, including Claude Code in the Desktop app: `claude-router on` writes the proxy into the `env` of `~/.claude/settings.json`; `off` removes it and points new sessions straight at Anthropic (for when the router is down).
 
-`claude-router status|restart|start|stop|logs|off|on|trigger`.
+`claude-router status|restart|start|stop|logs|off|on`. `logs` shows both the router (`limit fallback: <model> -> <model>`) and Bifrost.
 
 ## GitHub Copilot
 
-One-line install on a Mac (no chezmoi needed; keeps an existing `config.json`, signs in to Copilot, starts the router):
+Bifrost's native `github-copilot` provider: Claude models over Copilot's Messages endpoint, others (Gemini, GPT) over Chat Completions or Responses, editor headers and Copilot token refresh included. The router passes it the GitHub token from `~/.local/share/copilot-api/github_token` as `GITHUB_COPILOT_TOKEN`. Sign in once with `npm exec --yes --package=copilot-api@0.7.0 -- copilot-api auth` (device login; never track that file).
+
+One-line install on a Mac (no chezmoi needed; sets aside a pre-Bifrost `config.json`, signs in to Copilot, starts the router):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-copilot-install.sh | bash
 ```
 
-Quick start: `cp ~/.config/claude-model-router/config.example.json ~/.config/claude-model-router/config.json`, authenticate (below), `chezmoi apply`, then `claude-router restart`.
+The launcher disables Claude Code's advisor tool because Copilot rejects its executor/advisor pairing. This relies on GitHub's unofficial Copilot API; see [Bifrost's Copilot provider](https://docs.getbifrost.ai/providers/supported-providers/github-copilot).
 
-To pick Copilot models in `/model`, add rows to `modelPicker.options` in `~/.claude/settings.json` (or `settings.private.json`):
+## A gateway behind an authenticated proxy
+
+Some gateways are reached only through an HTTPS proxy that wants a short-lived `Proxy-Authorization` token, which Bifrost's proxy settings can't produce. Point the Bifrost provider's `proxy_config` at the router and list the host in `upstreamProxies`; the router chains that CONNECT through the real proxy with a token from `tokenCommand` (refreshed every `refreshSeconds`, and on a `407`):
 
 ```json
-{ "model": "copilot/claude-opus-5.5", "label": "GitHub Copilot — Opus 5.5", "behavesAs": "claude-opus-5-5" },
-{ "model": "copilot/claude-sonnet-5.5", "label": "GitHub Copilot — Sonnet 5.5", "behavesAs": "claude-sonnet-5-5" },
-{ "model": "copilot/claude-haiku-5.5", "label": "GitHub Copilot — Haiku 5.5", "behavesAs": "claude-haiku-5-5" }
+"upstreamProxies": [
+  { "host": "gateway.example.com:8443", "proxy": "https://gateway.example.com:8443", "tokenCommand": "my-token-helper", "refreshSeconds": 240 }
+]
 ```
 
-`claude-act` starts Claude Code on your saved `/model` (e.g. Opus) with the subscription fallback below turned on for that session. Pick a `copilot/…` row in `/model` to use Copilot from the start.
-
-Authenticate with `npm exec --yes --package=copilot-api@0.7.0 -- copilot-api auth`. It saves the GitHub credential locally with mode 0600; never track that file. `claude-copilot-token` exchanges it for a short-lived Copilot token.
-
-Add a route to the untracked router config with `modelPrefix: "copilot/"`, `origin: "https://api.githubcopilot.com"`, `authMode: "bearer"`, `stripModelPrefix: true`, and `tokenCommand: "$HOME/.local/bin/claude-copilot-token"`. Bearer routes use direct HTTPS, replace the incoming authorization, and remove API keys and cookies. Their optional `headers` object supplies the upstream integration headers. Set `stripCacheScope: true` for Copilot: its Messages API rejects Claude Code's cache scope field. Restart the router after changing its config. Copilot serves some models (Gemini) over Chat Completions only: list them in the route's `chatModels` (e.g. `["gemini-4-neon"]`, without the prefix) and the router translates Messages to Chat Completions and back, streaming and tool calls included; `count_tokens` for them returns a local estimate. `curl https://api.githubcopilot.com/models` (with the token) shows each model's `supported_endpoints`. The launcher disables Claude Code's advisor tool because Copilot rejects its executor/advisor pairing.
-
-### Subscription fallback
-
-With a top-level `subscriptionFallback` in `config.json`, Claude subscription requests from sessions that send `x-claude-router-fallback` (`claude-act` sets it through `ANTHROPIC_CUSTOM_HEADERS`; the router strips it) move to the Copilot route, and return after the limit resets. `trigger` picks when they move; `claude-router trigger` prints it and `claude-router trigger utilization|limit` sets it and restarts the router:
-
-- `"utilization"` (default): before extra (on-demand) usage starts, once a window reaches `preemptAt`;
-- `"limit"`: only when Claude refuses a request (429 with `anthropic-ratelimit-unified-status: rejected`): the subscription, then any extra usage, runs out first. The refused request is retried on Copilot, which serves until `anthropic-ratelimit-unified-reset`.
-
-With `"utilization"`, each response's `anthropic-ratelimit-unified-*` headers decide it:
-
-- a 5h or 7d window at `preemptAt` utilization or above: Copilot until that window's reset;
-- `anthropic-ratelimit-unified-status: rejected` (over the limit): Copilot until `anthropic-ratelimit-unified-reset`. A refused request (429) is retried on Copilot in the same call; one already served as extra usage (200) is delivered, and the next request moves.
-
-Fallback requests drop Claude thinking blocks from the history, since Copilot rejects their signatures. Interactive Claude Code keeps the conversation in a server-side thread and sends only new messages (`thread: continue`); Copilot has no copy, so the fallback answers those with `thread_unsupported_request`, and Claude Code resends the turn with the whole history and stays stateless on that model for the session. Ordinary 429s, auth errors, API-key requests and models missing from `models` pass through unchanged. State is in memory: a router restart re-checks Claude on the next request and clears `fallback-until`. The router writes the reset time to `fallback-until`; the ccstatusline widget `claude-router-statusline` shows `⇄ Claude` or `⇄ Copilot until HH:MM` in `claude-act` sessions. Watch it with `claude-router logs` (`subscription fallback: <model> -> <model>`).
-
 ```json
-"subscriptionFallback": {
-  "routePrefix": "copilot/",
-  "trigger": "utilization",
-  "preemptAt": 0.98,
-  "models": { "claude-opus-5-5": "claude-opus-5.5", "claude-sonnet-5-5": "claude-sonnet-5.5" }
+"gateway": {
+  "keys": [],
+  "network_config": { "base_url": "https://gateway.example.com:8443", "default_request_timeout_in_seconds": 600 },
+  "proxy_config": { "type": "http", "url": "http://127.0.0.1:8787" },
+  "custom_provider_config": { "base_provider_type": "anthropic", "is_key_less": true }
 }
 ```
 
-This relies on GitHub's unofficial Copilot API; access and model availability depend on your subscription and organization policy. See [Copilot API](https://github.com/ericc-ch/copilot-api) and [native Messages integration](https://docs.litellm.ai/docs/providers/github_copilot).
+Bifrost strips only the first `provider/` segment, so a gateway that wants its own prefix (`vendor/model-a`) is reached as `gateway/vendor/model-a`. A keyless provider sends no `x-api-key`, for gateways that authenticate at the proxy and refuse one.
