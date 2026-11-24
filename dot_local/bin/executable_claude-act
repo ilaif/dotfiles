@@ -1,11 +1,10 @@
 #!/bin/sh
 set -eu
 
-# Claude subscription models, moved to GitHub Copilot by claude-model-router before extra usage starts.
+# Claude through claude-model-router: Bifrost models, and Copilot once the subscription and extra usage are spent.
 export HTTPS_PROXY=http://127.0.0.1:8787
 export NO_PROXY=localhost,127.0.0.1,::1
 export NODE_EXTRA_CA_CERTS="$HOME/.config/claude-model-router/tls/ca.pem"
-export ANTHROPIC_CUSTOM_HEADERS="x-claude-router-fallback: 1"
 export CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1
 unset ANTHROPIC_BASE_URL ANTHROPIC_MODEL CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY
 exec claude "$@"
