@@ -54,7 +54,7 @@ Bifrost's native `github-copilot` provider: Claude models over Copilot's Message
 One-line install on a Mac (no chezmoi needed; sets aside a pre-Bifrost `config.json`, signs in to Copilot, starts the router):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-copilot-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-act-install.sh | bash
 ```
 
 The launcher disables Claude Code's advisor tool because Copilot rejects its executor/advisor pairing. This relies on GitHub's unofficial Copilot API; see [Bifrost's Copilot provider](https://docs.getbifrost.ai/providers/supported-providers/github-copilot).

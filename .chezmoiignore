@@ -27,4 +27,4 @@ Library
 Library/LaunchAgents/dev.claude-model-router.plist
 {{ end }}
 
-claude-copilot-install.sh
+claude-act-install.sh

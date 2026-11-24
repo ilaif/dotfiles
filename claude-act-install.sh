@@ -1,16 +1,16 @@
 #!/bin/bash
 # One-line install of claude-act (Claude subscription, GitHub Copilot through Bifrost once it is spent) on macOS:
-#   curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-copilot-install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ilaif/dotfiles/main/claude-act-install.sh | bash
 set -euo pipefail
 
-ref="${CLAUDE_COPILOT_REF:-main}"
+ref="${CLAUDE_ACT_REF:-main}"
 raw="https://raw.githubusercontent.com/ilaif/dotfiles/$ref"
 dir="$HOME/.config/claude-model-router"
 bin="$HOME/.local/bin"
 label=dev.claude-model-router
 plist="$HOME/Library/LaunchAgents/$label.plist"
 
-[[ $(uname) == Darwin ]] || { echo "claude-copilot needs macOS (the router runs as a LaunchAgent)" >&2; exit 1; }
+[[ $(uname) == Darwin ]] || { echo "claude-act needs macOS (the router runs as a LaunchAgent)" >&2; exit 1; }
 for tool in node jq curl claude; do
   command -v "$tool" >/dev/null || { echo "missing $tool: install it first" >&2; exit 1; }
 done
@@ -24,7 +24,6 @@ for f in claude-act claude-router; do
   curl -fsSL "$raw/dot_local/bin/executable_$f" -o "$bin/$f"
   chmod +x "$bin/$f"
 done
-ln -sf claude-act "$bin/claude-copilot"
 
 # A config from before Bifrost (it has "routes") is set aside; the router now serves extra models through Bifrost.
 if [[ -f $dir/config.json ]] && jq -e '.routes' "$dir/config.json" >/dev/null; then
@@ -33,7 +32,7 @@ if [[ -f $dir/config.json ]] && jq -e '.routes' "$dir/config.json" >/dev/null; t
 fi
 [[ -f $dir/config.json ]] || cp "$dir/config.example.json" "$dir/config.json"
 [[ -f $dir/bifrost/config.json ]] || cp "$dir/bifrost.config.example.json" "$dir/bifrost/config.json"
-rm -f "$bin/claude-copilot-token" "$bin/claude-router-statusline" "$dir/fallback-until"
+rm -f "$bin/claude-copilot" "$bin/claude-copilot-token" "$bin/claude-router-statusline" "$dir/fallback-until"
 
 if [[ ! -s $HOME/.local/share/copilot-api/github_token ]]; then
   echo "Sign in to GitHub Copilot (device login):"
