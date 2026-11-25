@@ -41,7 +41,7 @@ A sibling worktree of the main clone:
 git fetch -q origin pull/<N>/head:pr-<N> && git worktree add -q ../<repo>-pr<N> pr-<N>
 ```
 
-When `pull/<N>/head` isn't found (seen on `act-security/gitops`), fetch the branch: `git fetch -q origin <headRefName>:pr-<N>`.
+When `pull/<N>/head` isn't found, fetch the branch: `git fetch -q origin <headRefName>:pr-<N>`.
 
 Done when: the worktree's HEAD equals `headRefOid`.
 

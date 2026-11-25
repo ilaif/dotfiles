@@ -11,9 +11,8 @@ Turn "let's plan X" into one published HTML page Ilai can read, comment on and s
 design; it doesn't survey options. Each fact on it was read in the code, at a pinned commit.
 
 Build the page with `/web-artifacts-builder` (load it first), not a Claude Docs doc or hand-written HTML.
-[references/example-App.tsx](references/example-App.tsx) and
-[references/example-specs.json](references/example-specs.json) are a finished plan (Backoffice MCP,
-2026-11-23): start from them.
+If this machine has `references/example-App.tsx` and `references/example-specs.json` (a finished plan,
+kept local), start from them. Read `references/local.md` too when it exists: org-specific gotchas.
 
 ## Steps
 
@@ -27,7 +26,7 @@ Done when: every row of "What exists today" has a source file, and you know what
 
 ### 2. Draft in the repo
 
-If the repo keeps temporary plans (act: gitignored `docs/plans/YYYY-MM-DD-<name>.md`), write the plan there
+If the repo keeps temporary plans (e.g. a gitignored `docs/plans/YYYY-MM-DD-<name>.md`), write the plan there
 first as markdown. It's the text source for the page and survives the session.
 
 ### 3. Build the page
@@ -61,8 +60,8 @@ or "safety" section).
 | Delivery | `delivery` | Which PRs, in which order, how big? | `Steps`, spike first; one PR per seam (deploy step, one-way door) |
 | Delivery | `decisions` | What does Ilai need to decide? | `Table`: decision · options · `<Chip kind="add">` recommendation |
 
-Name the real runtime each operation hits, verified in code (e.g. backoffice pipeline triggers start the tenant's
-RMPO DAG schedule, not a Temporal workflow).
+Name the real runtime each operation hits, verified in code (e.g. a trigger that enqueues a scheduled job, not
+the workflow engine you'd assume).
 
 Page header: `eyebrow="Plan · YYYY-MM-DD"`, `title` = the thing's name, `thesis` = one sentence a newcomer gets.
 Every section `takeaway` reads as a sentence; together they tell the whole plan (verify prints this test).
@@ -84,10 +83,4 @@ recommended answers, so Ilai can answer in one message.
   any-cast check. Rephrase ("every staff token").
 - **Sizes are concrete** ("half a day", "2 days"); a piece you can't size yet says "not sized yet" and what
   sizes it.
-- **An MCP server plan** starts from Terraplain's design (`gh api repos/act-security/terraplane/contents/docs/mcp.md`):
-  official SDK v2, stateless, OAuth 2.1 with discovery, per-tool scopes, in-process calls as the user, audit with
-  `intent`. Say where the plan departs from it and why.
-- **act MCP plans:** a staff-facing MCP runs its own Better Auth issuer inside the service (`@better-auth/mcp`, own keys),
-  like Terraplain, with staff signing in through Auth0 staff connections; customer tokens stay on auth-service. Clients connect through Podium and claude.ai org connectors; the `act-security/claude-code-plugins`
-  plugin is inactive, never a delivery path.
 - Recommend out of v1 anything that would put a credential or login link into a tool result or transcript.

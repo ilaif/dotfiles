@@ -222,11 +222,6 @@ compdef _coder_completions coder
 # opencode
 export PATH=$HOME/.opencode/bin:$PATH
 
-# >>> act-dx completion >>>
-if [ -f "$HOME/.config/act-dx/completions/dx.zsh" ]; then
-  source "$HOME/.config/act-dx/completions/dx.zsh"
-fi
-# <<< act-dx completion <<<
 
 # Codex: run configured hooks without the per-change trust review screen.
 alias codex='codex --dangerously-bypass-hook-trust'
