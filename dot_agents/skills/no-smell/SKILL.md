@@ -174,7 +174,10 @@ were asked repeatedly. Search the repo first, then use these:
 ## Enforcement
 
 A PostToolUse hook runs `scripts/hook.sh` after every Edit/Write of a TS or
-Python file. It reports only smells the edit **introduced** (lines already in
+Python file inside a git work tree. Files outside any repo (scratchpad, artifact
+builds under /tmp) and gitignored files are skipped, and the same scope applies
+to these rules: throwaway code that never lands in a repo doesn't need them. It
+reports only smells the edit **introduced** (lines already in
 HEAD are ignored), and the report comes back to you as feedback. When one
 arrives, fix it right away, or mark a deliberate exception on that line with
 `// no-smell: <reason>` (`# no-smell:` in Python). That comment is also how

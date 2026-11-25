@@ -10,11 +10,14 @@ file=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty' 2>/dev/
 [[ -n $file && -f $file ]] || exit 0
 case $file in *.ts|*.tsx|*.mts|*.cts|*.py) ;; *) exit 0 ;; esac
 
-# Scan by repo-relative path so test-dir detection never sees the checkout's own ancestors.
+# Only code headed for a repo: skip files outside any git work tree (scratchpad, /tmp
+# artifact builds) and gitignored files. Scan by repo-relative path so test-dir detection
+# never sees the checkout's own ancestors.
 cd "$(dirname "$file")" || exit 0
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$PWD
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$root" || exit 0
 rel=${file#"$root"/}
+git check-ignore -q -- "$rel" && exit 0
 scan=$(bash "$here/check.sh" -- "$rel" 2>/dev/null); (( $? == 1 )) || exit 0
 
 baseline=$(mktemp); trap 'rm -f "$baseline"' EXIT
