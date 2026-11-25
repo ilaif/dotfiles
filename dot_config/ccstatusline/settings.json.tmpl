@@ -77,14 +77,11 @@
         }
       },
       {
-        "id": "extra-usage-used",
-        "type": "extra-usage-used",
-        "color": "magenta"
-      },
-      {
-        "id": "extra-usage-utilization",
-        "type": "extra-usage-utilization",
-        "color": "magenta"
+        "id": "usage-overage",
+        "type": "custom-command",
+        "commandPath": "{{ .chezmoi.homeDir }}/.local/bin/claude-usage-overage-statusline",
+        "preserveColors": true,
+        "timeout": 4000
       }
     ]
   ],

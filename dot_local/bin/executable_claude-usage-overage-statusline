@@ -1,0 +1,26 @@
+#!/bin/sh
+# ccstatusline widget: overage for the account serving this session. Copilot premium requests while
+# claude-model-router falls back to Copilot; Claude extra usage only once the plan limits are spent.
+input=$(cat)
+model=$(printf '%s' "$input" | jq -r '.model.id // ""')
+session=$(printf '%s' "$input" | jq -r '.session_id // ""')
+case "$model" in
+  github-copilot/*) route=copilot ;;
+  act/*) route=foundry ;;
+  *) route=$(cat "$HOME/.config/claude-model-router/sessions/$session" 2>/dev/null || echo claude) ;;
+esac
+
+if [ "$route" = copilot ]; then
+  cache="$HOME/.cache/ccstatusline/copilot-quota.json"
+  if [ -z "$(find "$cache" -mmin -1 2>/dev/null)" ]; then
+    curl -sf --max-time 3 -H "Authorization: token $(cat "$HOME/.local/share/copilot-api/github_token")" \
+      -H "Editor-Version: vscode/1.99.0" https://api.github.com/copilot_internal/user >"$cache.tmp" && mv "$cache.tmp" "$cache"
+  fi
+  jq -r '.quota_snapshots.premium_interactions
+    | "\u001b[35mCopilot \(.credits_used)/\(.entitlement) (\(100 - .percent_remaining | floor)%)\(if .overage_count > 0 then " +\(.overage_count) overage" else "" end)\u001b[0m"' "$cache"
+  exit 0
+fi
+
+usage=$(ls -t "$HOME"/.cache/ccstatusline/usage*.json 2>/dev/null | head -1)
+[ -n "$usage" ] && jq -r 'select(.extraUsageEnabled and (.sessionUsage >= 100 or .weeklyUsage >= 100))
+  | "\u001b[35mExtra $\(.extraUsageUsed / 100 | floor)/$\(.extraUsageLimit / 100 | floor) (\(.extraUsageUtilization | floor)%)\u001b[0m"' "$usage"
