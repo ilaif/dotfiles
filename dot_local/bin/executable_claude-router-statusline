@@ -1,0 +1,16 @@
+#!/bin/sh
+# ccstatusline widget: which backend claude-model-router serves this session from (Claude, Copilot or Foundry).
+case "${HTTPS_PROXY:-}" in *127.0.0.1:8787*) ;; *) exit 0 ;; esac
+input=$(cat)
+model=$(printf '%s' "$input" | jq -r '.model.id // ""')
+session=$(printf '%s' "$input" | jq -r '.session_id // ""')
+case "$model" in
+  act/*) route=foundry ;;
+  github-copilot/*) route=copilot ;;
+  *) route=$(cat "$HOME/.config/claude-model-router/sessions/$session" 2>/dev/null || echo claude) ;;
+esac
+case "$route" in
+  foundry) printf '\033[36m⇄ Foundry\033[0m' ;;
+  copilot) printf '\033[35m⇄ Copilot\033[0m' ;;
+  *) printf '\033[32m⇄ Claude\033[0m' ;;
+esac

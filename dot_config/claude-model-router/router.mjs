@@ -39,6 +39,17 @@ const anthropicAgent = new https.Agent({ keepAlive: true });
 const bifrostAgent = new http.Agent({ keepAlive: true });
 const limitFallback = config.limitFallback ?? {};
 
+// Which route served each session's last Claude-model request, for the status-line widget (claude-router-statusline).
+const sessionsDir = `${dir}/sessions`;
+mkdirSync(sessionsDir, { recursive: true });
+const sessionRoutes = new Map();
+function recordRoute(req, route) {
+  const session = req.headers["x-claude-code-session-id"];
+  if (!session || sessionRoutes.get(session) === route) return;
+  sessionRoutes.set(session, route);
+  writeFileSync(`${sessionsDir}/${session}`, route);
+}
+
 const upstreamProxies = new Map(
   (config.upstreamProxies ?? []).map((proxy) => {
     const p = { ...proxy, url: new URL(proxy.proxy) };
@@ -105,6 +116,7 @@ function forwardWithLimitFallback(req, res, raw, body) {
   forwardToAnthropic(req, res, raw, (up) => {
     const refused = up.statusCode === 429 && up.headers["anthropic-ratelimit-unified-status"] === "rejected";
     if (!refused) {
+      recordRoute(req, "claude");
       res.writeHead(up.statusCode, up.headers);
       up.pipe(res);
       return;
@@ -112,6 +124,7 @@ function forwardWithLimitFallback(req, res, raw, body) {
     up.resume();
     up.on("end", () => {
       const model = body.model;
+      recordRoute(req, "copilot");
       body.model = limitFallback[model];
       // The fallback account rejects thinking signatures minted on the Claude account.
       for (const message of body.messages) {
