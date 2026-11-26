@@ -110,29 +110,38 @@ function forwardToBifrost(req, res, payload) {
   upstream.end(body);
 }
 
-// Claude refuses with 429 + unified-status "rejected" only once the subscription and any extra usage are spent;
-// ordinary rate limits stay with Claude Code's own retries.
+// Unified-status "rejected" means the subscription is spent: Anthropic then serves the request from extra usage (200)
+// or refuses it (429). The first such response marks the subscription spent until its reset, and Claude-model requests
+// go to the fallback until then; a 429 is retried there too. Ordinary rate limits stay with Claude Code's own retries.
+let subscriptionSpentUntil = 0;
+
+function forwardToFallback(req, res, body) {
+  const model = body.model;
+  recordRoute(req, "copilot");
+  body.model = limitFallback[model];
+  // The fallback account rejects thinking signatures minted on the Claude account.
+  for (const message of body.messages) {
+    if (Array.isArray(message.content)) message.content = message.content.filter((block) => !["thinking", "redacted_thinking"].includes(block.type));
+  }
+  console.log(`limit fallback: ${model} -> ${body.model}`);
+  forwardToBifrost(req, res, body);
+}
+
 function forwardWithLimitFallback(req, res, raw, body) {
+  if (Date.now() < subscriptionSpentUntil) return forwardToFallback(req, res, body);
   forwardToAnthropic(req, res, raw, (up) => {
-    const refused = up.statusCode === 429 && up.headers["anthropic-ratelimit-unified-status"] === "rejected";
-    if (!refused) {
+    if (up.headers["anthropic-ratelimit-unified-status"] === "rejected") {
+      subscriptionSpentUntil = Number(up.headers["anthropic-ratelimit-unified-reset"]) * 1000;
+      console.log(`subscription spent: fallback until ${new Date(subscriptionSpentUntil).toISOString()}`);
+    }
+    if (up.statusCode !== 429 || Date.now() >= subscriptionSpentUntil) {
       recordRoute(req, "claude");
       res.writeHead(up.statusCode, up.headers);
       up.pipe(res);
       return;
     }
     up.resume();
-    up.on("end", () => {
-      const model = body.model;
-      recordRoute(req, "copilot");
-      body.model = limitFallback[model];
-      // The fallback account rejects thinking signatures minted on the Claude account.
-      for (const message of body.messages) {
-        if (Array.isArray(message.content)) message.content = message.content.filter((block) => !["thinking", "redacted_thinking"].includes(block.type));
-      }
-      console.log(`limit fallback: ${model} -> ${body.model}`);
-      forwardToBifrost(req, res, body);
-    });
+    up.on("end", () => forwardToFallback(req, res, body));
   });
 }
 
