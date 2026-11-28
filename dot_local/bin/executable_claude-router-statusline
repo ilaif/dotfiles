@@ -1,5 +1,6 @@
 #!/bin/sh
 # ccstatusline widget: which backend claude-model-router serves this session from (Claude, Copilot or Foundry).
+[ -x /usr/local/lib/devcontainer/podium-claude-statusline ] && exit 0
 case "${HTTPS_PROXY:-}" in *127.0.0.1:8787*) ;; *) exit 0 ;; esac
 input=$(cat)
 model=$(printf '%s' "$input" | jq -r '.model.id // ""')

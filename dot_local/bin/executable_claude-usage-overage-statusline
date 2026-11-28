@@ -1,6 +1,7 @@
 #!/bin/sh
 # ccstatusline widget: overage for the account serving this session. Copilot premium requests while
 # claude-model-router falls back to Copilot; Claude extra usage only once the plan limits are spent.
+[ -x /usr/local/lib/devcontainer/podium-claude-statusline ] && exit 0
 input=$(cat)
 model=$(printf '%s' "$input" | jq -r '.model.id // ""')
 session=$(printf '%s' "$input" | jq -r '.session_id // ""')
